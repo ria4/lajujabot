@@ -21,7 +21,7 @@ class LajujaBotUpdater(Updater):
     def __init__(self, config, wh_handler):
         self.config = config
         self.wh_handler = wh_handler
-        persistence = PicklePersistence(filename="subscriptions.pickle",
+        persistence = PicklePersistence(filename=config["PersistenceFile"],
                                         store_user_data=False,
                                         store_bot_data=False)
         super().__init__(token=config["TelegramBotToken"], persistence=persistence)

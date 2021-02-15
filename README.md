@@ -4,6 +4,8 @@ This Telegram bot sends notifications when selected Twitch streamers go live. It
 
 We make use of [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) & webhooks via [twitchAPI](https://github.com/Teekeks/pyTwitchAPI). Basically the twitchAPI library sets up a webhook which will make Twitch report go-live events to a public domain under your control. When the alert reaches your side (usually ~1mn after the streamer actually goes live), it triggers the bot into sending a message to every chat which subscribed to the related Twitch channel.
 
+These subscriptions are persistent, meaning that the bot should automatically restore them after a crash.
+
 ### What it needs
 
 - [A Telegram bot token](https://core.telegram.org/bots#6-botfather);
@@ -41,17 +43,20 @@ Create a `config.json` with the mentioned values:
     "TwitchAppClientID": "TWITCH_APP_CLIENT_ID",
     "TwitchAppClientSecret": "TWITCH_APP_CLIENT_SECRET",
     "CallbackURL": "https://mydomain.tld/lajujabot-webhook/",
-    "ListeningPort": "15151"
+    "ListeningPort": "15151",
+    "PersistenceFile": "/opt/lajujabot/subscriptions.pickle"
 }
 ```
 
-You should be ready to start the bot:
+Path `/lajujabot-webhook/` and port 15151 are mainly suggestions. It's sensible to keep the persistence file in the bot directory, but you can get creative if you want.
+
+The bot should be able to start now:
 
 ```bash
 python3 main.py
 ```
 
-Path `/lajujabot-webhook/` and port 15151 are mainly suggestions. Also, you can specify an alternative configuration file using `python3 main.py -c config2.json`.
+Note that you can specify an alternative configuration file using `python3 main.py -c config2.json`.
 
 ### Credits
 
