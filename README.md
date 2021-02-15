@@ -2,7 +2,7 @@ This Telegram bot sends notifications when selected Twitch streamers go live. It
 
 ### How it works
 
-We make use of [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) & webhooks via [twitchAPI](https://github.com/Teekeks/pyTwitchAPI). Basically the twitchAPI library sets up a webhook which will make Twitch report live events to a public domain under your control. When the alert reaches your side, it triggers the bot into sending a message to every chat which subscribed to the related Twitch channel.
+We make use of [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) & webhooks via [twitchAPI](https://github.com/Teekeks/pyTwitchAPI). Basically the twitchAPI library sets up a webhook which will make Twitch report go-live events to a public domain under your control. When the alert reaches your side, it triggers the bot into sending a message to every chat which subscribed to the related Twitch channel.
 
 ### What it needs
 
