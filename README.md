@@ -4,15 +4,15 @@ This Telegram bot sends notifications when selected Twitch streamers go live. It
 
 We make use of [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) & webhooks via [twitchAPI](https://github.com/Teekeks/pyTwitchAPI). Basically the twitchAPI library sets up a webhook which will make Twitch report live events to a public domain under your control. When the alert reaches your side, it triggers the bot into sending a message to every chat which subscribed to the related Twitch channel.
 
-#### What it needs
+### What it needs
 
 - [A Telegram bot token](https://core.telegram.org/bots#6-botfather);
 - [A Twitch application id & secret](https://dev.twitch.tv/console/apps/create);
 - A secure host for the webhook listener.
 
-If you've already got control over a domain served with TLS 1.2+, you only need to proxy the webhook traffic to this application e.g. on port 15151. With nginx, this would mean adding to your server block something like
+If you've already got control over a domain served with TLS 1.2+, you only need to proxy the webhook traffic to this application e.g. on port 15151. With nginx, this would mean adding to your server block something like:
 
-```
+```nginx
 location /lajujabot-webhook/ {
     proxy_pass http://127.0.0.1:15151/; }
 ```
@@ -39,18 +39,19 @@ Create a `config.json` with the mentioned values:
 {
     "TelegramBotToken": "TELEGRAM_BOT_TOKEN",
     "TwitchAppClientID": "TWITCH_APP_CLIENT_ID",
-    "TwitchAppClientSecret": "TWITCH_APP_CLIENT_SECRET"
-    "CallbackURL": "https://mydomain.tld/whatever/path:high_port"
+    "TwitchAppClientSecret": "TWITCH_APP_CLIENT_SECRET",
+    "CallbackURL": "https://mydomain.tld/lajujabot-webhook/",
+    "ListeningPort": "15151"
 }
 ```
 
-Start the bot
+You should be ready to start the bot:
 
 ```bash
 python3 main.py
 ```
 
-You can specify an alternative configuration file using `python3 main.py -c config2.json`.
+Path `/lajujabot-webhook/` and port 15151 are mainly suggestions. Also, you can specify an alternative configuration file using `python3 main.py -c config2.json`.
 
 ### Credits
 

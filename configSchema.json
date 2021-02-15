@@ -16,10 +16,14 @@
 		"CallbackURL" : {
 			"type" : "string",
 			"minLength": 1
+		},
+		"ListeningPort" : {
+			"type" : "int"
 		}
 	},
 	"required": ["TelegramBotToken",
 				 "TwitchAppClientID",
 	 			 "TwitchAppClientSecret",
-	 			 "CallbackURL"]
+	 			 "CallbackURL",
+                 "ListeningPort"]
 }
