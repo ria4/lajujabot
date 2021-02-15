@@ -53,6 +53,9 @@ class LajujaBotUpdater(Updater):
 
 
     def callback_stream_changed(self, uuid, data):
+        print(self.dispatcher.bot_data)
+        print(data)
+        print()
 
         if data["type"] == "offline":
             return
@@ -155,7 +158,7 @@ class LajujaBotUpdater(Updater):
                     context.chat_data[channel_id] = channel_name
                     context.bot_data[channel_id]["subscribers"].append(update.message.chat_id)
                     text += "You were successfully subscribed to {}'s channel!".format(channel_name)
-                
+
         context.bot.send_message(chat_id=update.message.chat_id, text=text)
 
 
