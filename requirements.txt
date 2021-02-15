@@ -7,8 +7,6 @@ future==0.16.0
 idna==2.7
 itsdangerous==0.24
 Jinja2==2.10
-jsonschema==2.6.0
-MarkupSafe==1.0
 pkg-resources==0.0.0
 pycparser==2.18
 python-telegram-bot>=13.2

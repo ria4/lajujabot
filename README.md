@@ -2,7 +2,7 @@ This Telegram bot sends notifications when selected Twitch streamers go live. It
 
 ### How it works
 
-We make use of [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) & webhooks via [twitchAPI](https://github.com/Teekeks/pyTwitchAPI). Basically the twitchAPI library sets up a webhook which will make Twitch report go-live events to a public domain under your control. When the alert reaches your side, it triggers the bot into sending a message to every chat which subscribed to the related Twitch channel.
+We make use of [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) & webhooks via [twitchAPI](https://github.com/Teekeks/pyTwitchAPI). Basically the twitchAPI library sets up a webhook which will make Twitch report go-live events to a public domain under your control. When the alert reaches your side (usually ~1mn after the streamer actually goes live), it triggers the bot into sending a message to every chat which subscribed to the related Twitch channel.
 
 ### What it needs
 
@@ -22,15 +22,15 @@ location /lajujabot-webhook/ {
 ```bash
 # System dependencies
 sudo apt install python3 python3-pip
+pip3 install virtualenvwrapper
 
 # Get things ready
 git clone https://github.com/ria4/lajujabot
 cd lajujabot
-python3 -m venv .
-source bin/activate
+mkvirtualenv -p /usr/bin/python3 lajujabot
 
 # Python dependencies
-pip3 install -r requirements.txt
+(lajujabot)$ pip3 install -r requirements.txt
 ```
 
 Create a `config.json` with the mentioned values:
@@ -61,4 +61,4 @@ It is also indebted to the [twitchAPI](https://github.com/Teekeks/pyTwitchAPI) i
 
 ### TODO
 
-Identify useless packages from `requirements.txt` and take out the trash...
+Identify useless packages in `requirements.txt` and take out the trash...

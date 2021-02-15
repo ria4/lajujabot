@@ -118,6 +118,12 @@ class LajujaBotUpdater(Updater):
         # if one of channel_id or channel_name is present,
         # both or them are supposed to be present and correspond to a valid channel
 
+        # if you ever want to remove the 100-subs limit, just delete this part
+        if len(context.chat_data) >= 100:
+            text = "There's already 100 subscriptions on this chat and I think that's quite enough. If you want more, tweak the code and deploy it yourself. Or send a few $$$ to @oriane_tury so that she can help you."
+            context.bot.send_message(chat_id=update.message.chat_id, text=text)
+            return
+
         if channel_id or channel_name:
             if channel_id not in context.bot_data:
                 success, uuid = self.wh_handler.hook.subscribe_stream_changed(channel_id, self.callback_stream_changed)
