@@ -16,12 +16,12 @@ class TwitchWebhookHandler(Twitch):
         hook.authenticate(self)
         hook.start()
 
-    def add_subscription(self, channel_id, callback_stream_changed):
-        # userID should be a valid digit, not username
-        success, uuid = self.hook.subscribe_stream_changed(channel_id, callback_stream_changed)
-        if not success:
-            return None
-        return uuid
-
+#    def hook_unsubscribe_hex(self, uuid_hex):
+#        # we need this hacky hex interface because we cannot serialize uuids
+#        for uuid in self.hook._TwitchWebHook__active_webhooks:
+#            if uuid.hex == uuid_hex:
+#                self.hook.unsubscribe(uuid)
+#                break
+#
     def __del__(self):
         self.hook.stop()
