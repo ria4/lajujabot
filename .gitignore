@@ -1,0 +1,4 @@
+__pycache__/
+.editorconfig
+config.json
+subscriptions.pickle
