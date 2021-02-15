@@ -1,0 +1,25 @@
+{
+	"type" : "object",
+	"properties" : {
+		"TelegramBotToken" : { 
+			"type": "string",
+			"minLength": 1
+		 },
+		"TwitchAppClientID" : {
+			"type": "string",
+			"minLength": 1
+		},
+		"TwitchAppClientSecret" : {
+			"type": "string",
+			"minLength": 1
+		},
+		"CallbackURL" : {
+			"type" : "string",
+			"minLength": 1
+		}
+	},
+	"required": ["TelegramBotToken",
+				 "TwitchAppClientID",
+	 			 "TwitchAppClientSecret",
+	 			 "CallbackURL"]
+}
