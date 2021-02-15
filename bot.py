@@ -63,7 +63,7 @@ class LajujaBotUpdater(Updater):
 
 
     def help(self, update, context):
-        text = """/sub channel – send notifications when the channel goes live.
+        text = """/sub channel – receive notifications when the channel goes live.
                   /unsub channel – remove the subscription to the channel.
                   /unsub_all – remove all subscriptions for the current chat.
                   /import account – monitor all channels followed by the account.
@@ -80,9 +80,7 @@ class LajujaBotUpdater(Updater):
         context.bot.send_message(chat_id=update.message.chat_id, text=cleandoc(text))
 
 
-    def sub(self, update, context, user_name=None, user_id=None):
-#if not userID.isdigit():
-#    userID = self.getUserID(userID)
+    def sub(self, update, context, channel_name=None, channel_id=None):
         # Check if we received the correct, allowed, number of subscriptions
         # to subscribe to (1 atm)
         if len(args) > 1:
@@ -159,51 +157,69 @@ class LajujaBotUpdater(Updater):
                          parse_mode=ParseMode.MARKDOWN)
 
 
-    def unsub(self, update, context):
-        # Check if we received the correct, allowed, number of subscriptions
-        # to unsubscribe from (1 atm)
-        if len(args) > 1:
-            message = 'Sorry, you can unsubscribe only from one streamer at a time'
-            bot.send_message(chat_id=update.message.chat_id, text=message)
-        elif len(args) < 1:
-            message = 'Sorry, you must provide one valid twitch username '\
-              + 'you want to unsubscribe from.\n\n'\
-              + 'Please try again with something like\n'\
-              + '_/unsub streamerUsername_'
-            bot.send_message(
-                chat_id=update.message.chat_id,
-                text=message,
-                parse_mode=ParseMode.MARKDOWN)
+    def unsub(self, update, context, channel_id=None):
+        # if channel_id is present, it is supposed to be a valid channel subscribed by the user
+
+        if channel_id:
+            channel_data = self.wh_handler.get_users(user_ids=[channel_id])
+            channel_name = channel_data["data"][0]["display_name"]
+            subscriptions[channel_id]["subscribers"].remove(update.message.chat_id)
+            if len(subscriptions[channel_id]["subscribers"]) == 0:
+                self.wh_handler.unsubscribe(subscriptions[channel_id]["subscription_uuid"])
+                subscriptions.pop(channel_id)
+            self.persistence.update_bot_data(subscriptions)
+            text = "You won't receive notifications for {} anymore.".format(channel_name)
+            context.bot.send_message(chat_id=update.message.chat_id, text=text)
+            return
+
+        if not context.args:
+            text = "You must submit a Twitch channel name for this to work."
+
         else:
-            streamer = args[0]
-            queryParams = (update.message.chat_id, streamer)
-            # Check if requested subscription already exits in db
-            sql = 'SELECT COUNT(*) FROM SUBSCRIPTIONS WHERE ChatID=? AND Sub=?'
-            self.c.execute(sql, queryParams)
-            found = self.c.fetchone()[0]
-            # If it exits...
-            if found:
-                # ... Delete it and...
-                sql = 'DELETE FROM SUBSCRIPTIONS WHERE ChatID=? AND Sub=?'
-                self.c.execute(sql, queryParams)
-                self.dbConn.commit()
-                #...Notify the user
-                bot.send_message(chat_id=update.message.chat_id,
-                     text='Yeeey! *{}* subscription successfully '\
-                     .format(streamer) + 'deleted!',
-                     parse_mode=ParseMode.MARKDOWN)
+            text = ""
+            if len(context.args) > 1:
+                text += "Please send one channel name at a time.\n"
+            channel_data = self.wh_handler.get_users(logins=[context.args[0]])
+
+            if not channel_data["data"]:
+                text += "The channel '{}' cannot be found. Please check your input.".format(context.args[0])
+
             else:
-                # Otherwise warn the user that subscription doesn't exist
-                bot.send_message(chat_id=update.message.chat_id,
-                     text='Sorry, it seems you\'re not subscribed '\
-                     + 'to *{}*'.format(streamer),
-                     parse_mode=ParseMode.MARKDOWN)
+                channel_id = channel_data["data"][0]["id"]
+                subscriptions = self.persistence.get_bot_data()
+
+                if ((channel_id not in subscriptions) or \
+                    (update.message.chat_id not in subscriptions[channel_id]["subscribers"])):
+                    text += "You weren't subscribed to this channel, so we're good here."
+
+                else:
+                    subscriptions[channel_id]["subscribers"].remove(update.message.chat_id)
+                    if len(subscriptions[channel_id]["subscribers"]) == 0:
+                        self.wh_handler.unsubscribe(subscriptions[channel_id]["subscription_uuid"])
+                        subscriptions.pop(channel_id)
+                    self.persistence.update_bot_data(subscriptions)
+                    text += "You won't receive notifications for {} anymore.".format(context.args[0])
+
+        context.bot.send_message(chat_id=update.message.chat_id, text=text)
 
 
     def unsub_all(self, update, context):
+
         subscriptions = self.persistence.get_bot_data()
+
+        if not subscriptions:
+            text = "You're not subscribed to any channel, so we're good here."
+            context.bot.send_message(chat_id=update.message.chat_id, text=text)
+            return
+
+        sub_check = False
         for channel_id in subscriptions:
-            self.unsub(update, context, channel_id)
+            if update.message.chat_id in subscriptions[channel_id]["subscribers"]:
+                sub_check = True
+                self.unsub(update, context, channel_id)
+        if not sub_check:
+            text = "You're not subscribed to any channel, so we're good here."
+            context.bot.send_message(chat_id=update.message.chat_id, text=text)
 
 
     def subs_import(self, update, context):
@@ -222,7 +238,9 @@ class LajujaBotUpdater(Updater):
                     text = "This account follows no other account. Stop messing around."
                 else:
                     for followed_user in followed_data["data"]:
-                        self.sub(update, context, user_name=followed_user["to_name"], user_id=followed_user["to_id"])
+                        self.sub(update, context,
+                                 channel_name=followed_channel["to_name"],
+                                 channel_id=followed_channel["to_id"])
                     if followed_data["data"][0]["total"] == 100:
                         text = "You cannot import more than 100 accounts. Be reasonable."
 

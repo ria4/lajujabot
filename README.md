@@ -1,10 +1,6 @@
-# <img src="logo.png" alt="misterino" width="250px"/>
-
-> Developed by [Denni Bevilacqua](https://github.com/dennib) and [Antonio Vivace](https://github.com/avivace).
-
 Telegram bot notifying when your favorite streamers go live on Twitch.tv. Users can subscribe to Twitch streamers and receive a message when they go online (privately or in a group).
 
-The telegram bot can function in `polling` or in `webhook` mode. Those modes are idem-potent and you *should* see the same results and behaviours.
+This is a rework of the [misterino](https://github.com/zefzefzfzef) bot by truc & muche.
 
 ### Stack
 
@@ -13,17 +9,16 @@ We make use of
 - [_New_ Twitch API](https://dev.twitch.tv/docs/api/reference/);
 - [Twitch Webhooks](https://dev.twitch.tv/docs/api/webhooks-reference/) to subscribe to events instead of polling for them.
 - [Flask](http://flask.pocoo.org/docs/1.0/api/) as webhook listener;
-- [SQLite3](https://www.sqlite.org/docs.html) for persistence and multi-user experience;
 - [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot);
 
 #### Webhook mode
 
-The bot was developed to operate in `webhook` mode (this is also why it _may_ seem over-engineered). Please understand that this requires additional work and maintenance. You need:
+You need:
 
 - A public IP address and/or domain;
 - A SSL certificate;
 - A webhook listener;
-- A reverse proxy exposing the webhook listener, handling TLS1.0+ HTTPS-traffic. 
+- A reverse proxy exposing the webhook listener, handling TLS 1.2+ HTTPS-traffic.
 
 We don't use the python-telegram-bot integrated webserver, but we listen for webhooks with Flask, then we dispatch the de-jsonified (is this even a word?) payloads to another thread, using a shared Queue.
 
@@ -35,11 +30,11 @@ FYI the Twitch events are received anyway listening for webhooks, the `mode` set
 
 ```bash
 # System dependencies
-apt install python3 python3-pip
+sudo apt install python3 python3-pip
 
 # Get things ready
-git clone git@github.com:avivace/misterino.git
-cd misterino
+git clone https://github.com/ria4/lajujabot
+cd lajujabot
 python3 -m venv .
 source bin/activate
 
@@ -53,10 +48,10 @@ Create a `config.json` with the mentioned values:
 
 ```json
 {
-    "mode": "polling",
-    "botToken": "TELGRAM_BOT_TOKEN",
+    "TelegramBotToken": "TELEGRAM_BOT_TOKEN",
     "TwitchAppClientID": "TWITCH_APP_CLIENT_ID",
     "TwitchAppClientSecret": "TWITCH_APP_CLIENT_SECRET"
+    "CallbackURL": "CALLBACK_URL"
 }
 ```
 
@@ -65,8 +60,6 @@ Start the bot
 ```bash
 python3 main.py
 ```
-
-If the script can't find `config.json`, it'll create a default one for you.
 
 You can specify the configuration file to use using `python3 main.py -c config2.json`.
 
