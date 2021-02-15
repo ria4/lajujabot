@@ -55,14 +55,14 @@ class LajujaBotUpdater(Updater):
     def callback_stream_changed(self, uuid, data):
         print(self.dispatcher.bot_data)
         print(data)
-        print()
 
         if data["type"] == "offline":
             return
 
         started_at = data["started_at"]
         delta = datetime.now(timezone.utc) - datetime.fromisoformat(started_at[:-1]+"+00:00")
-        if (delta.days > 0) or (delta.seconds > 120):
+        print(delta.seconds)
+        if (delta.days > 0) or (delta.seconds > 300):
             # the stream changed but was already up for some time
             # we do not want to send another notification
             return
@@ -74,10 +74,12 @@ class LajujaBotUpdater(Updater):
         else:
             text = '{0} is live on Twitch!\n https://twitch.tv/{0}'.format(username)
 
-        for channel_id, channel_subs in self.dispatcher.bot_data.items():
+        for channel_subs in self.dispatcher.bot_data.values():
+            print("in bot_data subscriptions, checking uuid", channel_subs["subscription_uuid"])
             if channel_subs["subscription_uuid"] == uuid:
                 for chat_id in channel_subs["subscribers"]:
                     self.bot.send_message(chat_id=chat_id, text=text)
+            print()
             break
 
     

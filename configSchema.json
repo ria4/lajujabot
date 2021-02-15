@@ -18,7 +18,7 @@
 			"minLength": 1
 		},
 		"ListeningPort" : {
-			"type" : "int"
+			"type" : "number"
 		}
 	},
 	"required": ["TelegramBotToken",

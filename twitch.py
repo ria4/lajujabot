@@ -11,7 +11,7 @@ class TwitchWebhookHandler(Twitch):
         self.setup_webhook(config["CallbackURL"], config["TwitchAppClientID"])
 
     def setup_webhook(self, callback_url, twitch_app_id):
-        hook = TwitchWebHook(callback_url, twitch_app_id, config["Port"])
+        hook = TwitchWebHook(callback_url, twitch_app_id, self.config["ListeningPort"])
         self.hook = hook
         hook.authenticate(self)
         hook.start()
