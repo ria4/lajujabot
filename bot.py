@@ -9,9 +9,10 @@ class LajujaBotUpdater(Updater):
     """
     This bot has persistent chat_data to enable seamless restoration.
     chat_data are dicts of the following structure:
-    #XXX
+        { <channel_id_1> : <channel_name_1>,
+          <channel_id_2> : <channel_name_2>, ...}
 
-    bot_data is a dict of the following structure:
+    bot_data is a non-persistent dict of the following structure:
         { <channel_id_1> : {"subscription_uuid": <subscription_uuid>,
                             "subscribers": [chat_id_1, chat_id_2, ...] },
           <channel_id_2> : {...}, etc. }
@@ -53,33 +54,33 @@ class LajujaBotUpdater(Updater):
 
 
     def callback_stream_changed(self, uuid, data):
-        print(self.dispatcher.bot_data)
-        print(data)
 
         if data["type"] == "offline":
             return
 
         started_at = data["started_at"]
         delta = datetime.now(timezone.utc) - datetime.fromisoformat(started_at[:-1]+"+00:00")
-        print(delta.seconds)
+        #print("Notification delay: {} seconds".format(delta.seconds))
         if (delta.days > 0) or (delta.seconds > 300):
             # the stream changed but was already up for some time
             # we do not want to send another notification
             return
 
-        username = data["user_name"]
+        channel_id = data["user_id"]
         title = data["title"]
-        if title:
-            text = '{0} is live on Twitch!\n ~ {1} ~\n https://twitch.tv/{0}'.format(username, title)
-        else:
-            text = '{0} is live on Twitch!\n https://twitch.tv/{0}'.format(username)
 
         for channel_subs in self.dispatcher.bot_data.values():
-            print("in bot_data subscriptions, checking uuid", channel_subs["subscription_uuid"])
             if channel_subs["subscription_uuid"] == uuid:
                 for chat_id in channel_subs["subscribers"]:
+                    # we retrieve our user-defined channel_name,
+                    # because the one returned in data["user_name"] is de-capitalized
+                    # it's ugly, and also it might not work with our /unsub
+                    channel_name = self.dispatcher.chat_data[chat_id][channel_id]
+                    if title:
+                        text = '{0} is live on Twitch!\n ~ {1} ~\n https://twitch.tv/{0}'.format(channel_name, title)
+                    else:
+                        text = '{0} is live on Twitch!\n https://twitch.tv/{0}'.format(channel_name)
                     self.bot.send_message(chat_id=chat_id, text=text)
-            print()
             break
 
     
@@ -103,7 +104,7 @@ class LajujaBotUpdater(Updater):
 
     def about(self, update, context):
         text = """This bot was developed by @oriane_tury. ✨
-                  It was reworked from a bot by @avivace and @dennib.
+                  It was reworked from a bot by @avivace and @dennib, and it relies on a Twitch API implementation by Lena 'Teekeks' During.
                   Get the source code at https://github.com/ria4/lajujabot"""
         context.bot.send_message(chat_id=update.message.chat_id, text=cleandoc(text))
 
@@ -248,7 +249,7 @@ class LajujaBotUpdater(Updater):
             text = "It seems you have no subscriptions yet."
 
         else:
-            text = "Here's a list of all of your subscriptions:"
+            text = "Here's a list of your subscriptions:"
             for channel_name in context.chat_data.values():
                 text += "\n" + channel_name
 

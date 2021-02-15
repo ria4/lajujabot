@@ -58,3 +58,7 @@ Path `/lajujabot-webhook/` and port 15151 are mainly suggestions. Also, you can 
 This bot is a rework of [misterino](https://github.com/avivace/misterino), by Denni Bevilacqua and Antonio Vivace.
 
 It is also indebted to the [twitchAPI](https://github.com/Teekeks/pyTwitchAPI) implementation by Lena 'Teekeks' During.
+
+### TODO
+
+Identify useless packages from `requirements.txt` and take out the trash...

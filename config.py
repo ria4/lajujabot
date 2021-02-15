@@ -8,7 +8,8 @@ defaultConfig = {
     'TelegramBotToken': '',
     'TwitchAppClientID': '',
     'TwitchAppClientSecret': '',
-    'CallbackURL': ''
+    'CallbackURL': '',
+    'ListeningPort': '15151'
 }
 defaultConfigFile = "config.json"
 configSchema = "configSchema.json"
@@ -33,7 +34,7 @@ def selectConfigFile():
         return defaultConfigFile
 
 
-## Creating default blank configuration filein case the user didn't create one
+## Creating default blank configuration file in case the user didn't create one
 def createBlankConfigFile():
     with open('config.json', 'w') as blankConfigFile:
         json.dump(defaultConfig, blankConfigFile, indent=4)
