@@ -1,5 +1,5 @@
-import datetime
 import uuid
+from datetime import datetime, timezone
 from inspect import cleandoc
 from telegram.ext import (Updater, Dispatcher, PicklePersistence,
                           CommandHandler, MessageHandler, Filters)
@@ -54,20 +54,22 @@ class LajujaBotUpdater(Updater):
 
     def callback_stream_changed(self, uuid, data):
 
-        if not data["data"]:
-            # stream went offline
+        if data["type"] == "offline":
             return
 
-        started_at = data["data"][0]["started_at"]
-        delta = datetime.now() - datetime.fromisoformat(started_at)
+        started_at = data["started_at"]
+        delta = datetime.now(timezone.utc) - datetime.fromisoformat(started_at[:-1]+"+00:00")
         if (delta.days > 0) or (delta.seconds > 120):
             # the stream changed but was already up for some time
             # we do not want to send another notification
             return
 
-        username = data["data"][0]["user_name"]
-        title = data["data"][0]["title"]
-        text='{0} is live on Twitch! _{1}_ \nhttps://twitch.tv/{0}'.format(username, title)
+        username = data["user_name"]
+        title = data["title"]
+        if title:
+            text = '{0} is live on Twitch!\n ~ {1} ~\n https://twitch.tv/{0}'.format(username, title)
+        else:
+            text = '{0} is live on Twitch!\n https://twitch.tv/{0}'.format(username)
 
         for channel_id, channel_subs in self.dispatcher.bot_data.items():
             if channel_subs["subscription_uuid"] == uuid:
@@ -95,7 +97,7 @@ class LajujaBotUpdater(Updater):
 
 
     def about(self, update, context):
-        text = """This bot was developed by @oriane_tury.
+        text = """This bot was developed by @oriane_tury. ✨
                   It was reworked from a bot by @avivace and @dennib.
                   Get the source code at https://github.com/ria4/lajujabot"""
         context.bot.send_message(chat_id=update.message.chat_id, text=cleandoc(text))
@@ -117,14 +119,44 @@ class LajujaBotUpdater(Updater):
                     text = "Something went wrong with the subscription to {}'s channel. If you send a message to @oriane_tury, she'll try to sort things out. Sorry!".format(channel_name)
                     context.bot.send_message(chat_id=update.message.chat_id, text=text)
                     return
-                context.chat_data[channel_id] = channel_name
                 context.bot_data[channel_id] = {"subscription_uuid": uuid, "subscribers": []}
+            context.chat_data[channel_id] = channel_name
             context.bot_data[channel_id]["subscribers"].append(update.message.chat_id)
             text = "You were successfully subscribed to {}'s channel!".format(channel_name)
             context.bot.send_message(chat_id=update.message.chat_id, text=text)
             return
 
-        #XXX
+        if not context.args:
+            text = "You must submit a Twitch channel name for this to work."
+
+        else:
+            text = ""
+            if len(context.args) > 1:
+                text += "Please send one channel name at a time.\n"
+
+            channel_name = context.args[0]
+            if channel_name in context.chat_data.values():
+                text += "You're already subscribed to {}'s channel, so we're good here.".format(channel_name)
+
+            else:
+                channel_data = self.wh_handler.get_users(logins=[channel_name])
+                if not channel_data["data"]:
+                    text += "This account cannot be found. Please check your input."
+
+                else:
+                    channel_id = channel_data["data"][0]["id"]
+                    if channel_id not in context.bot_data:
+                        success, uuid = self.wh_handler.hook.subscribe_stream_changed(channel_id, self.callback_stream_changed)
+                        if not success:
+                            text += "Something went wrong with the subscription to {}'s channel. If you send a message to @oriane_tury, she'll try to sort things out. Sorry!".format(channel_name)
+                            context.bot.send_message(chat_id=update.message.chat_id, text=text)
+                            return
+                        context.bot_data[channel_id] = {"subscription_uuid": uuid, "subscribers": []}
+                    context.chat_data[channel_id] = channel_name
+                    context.bot_data[channel_id]["subscribers"].append(update.message.chat_id)
+                    text += "You were successfully subscribed to {}'s channel!".format(channel_name)
+                
+        context.bot.send_message(chat_id=update.message.chat_id, text=text)
 
 
     def unsub(self, update, context, channel_id=None):
@@ -148,24 +180,19 @@ class LajujaBotUpdater(Updater):
             text = ""
             if len(context.args) > 1:
                 text += "Please send one channel name at a time.\n"
-            channel_data = self.wh_handler.get_users(logins=[context.args[0]])
 
-            if not channel_data["data"]:
-                text += "The channel '{}' cannot be found. Please check your input.".format(context.args[0])
+            channel_name = context.args[0]
+            if not channel_name in context.chat_data.values():
+                text += "You weren't subscribed to the channel '{}', so we're good here.".format(channel_name)
 
             else:
-                channel_id = channel_data["data"][0]["id"]
-
-                if channel_id not in context.chat_data:
-                    text += "You weren't subscribed to this channel, so we're good here."
-
-                else:
-                    context.chat_data.pop(channel_id)
-                    context.bot_data[channel_id]["subscribers"].remove(update.message.chat_id)
-                    if len(context.bot_data[channel_id]["subscribers"]) == 0:
-                        self.wh_handler.hook.unsubscribe(context.bot_data[channel_id]["subscription_uuid"])
-                        context.bot_data.pop(channel_id)
-                    text += "You won't receive notifications about {} anymore.".format(context.args[0])
+                channel_id = list(context.chat_data.keys())[list(context.chat_data.values()).index(channel_name)]
+                context.chat_data.pop(channel_id)
+                context.bot_data[channel_id]["subscribers"].remove(update.message.chat_id)
+                if len(context.bot_data[channel_id]["subscribers"]) == 0:
+                    self.wh_handler.hook.unsubscribe(context.bot_data[channel_id]["subscription_uuid"])
+                    context.bot_data.pop(channel_id)
+                text += "You won't receive notifications about {} anymore.".format(context.args[0])
 
         context.bot.send_message(chat_id=update.message.chat_id, text=text)
 
@@ -177,7 +204,7 @@ class LajujaBotUpdater(Updater):
             context.bot.send_message(chat_id=update.message.chat_id, text=text)
             return
 
-        for channel_id in context.chat_data:
+        for channel_id in list(context.chat_data.keys()):
             self.unsub(update, context, channel_id)
 
 
