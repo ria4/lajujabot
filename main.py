@@ -11,4 +11,4 @@ wh_handler = TwitchWebhookHandler(config)
 
 # Start Telegram bot
 mybot = LajujaBotUpdater(config, wh_handler)
-mybot.start_polling()
+mybot.start_polling(clean=True)
