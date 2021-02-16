@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime, timezone
 from inspect import cleandoc
 from telegram.ext import (Updater, Dispatcher, PicklePersistence,
