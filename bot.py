@@ -260,15 +260,3 @@ class LajujaBotUpdater(Updater):
                 text += "\n" + channel_name
 
         context.bot.send_message(chat_id=update.message.chat_id, text=text)
-
-
-
-def read_pickle(openfile):
-    objects = []
-    with open(openfile, "rb") as f:
-        while True:
-            try:
-                objects.append(pickle.load(f))
-            except EOFError:
-                break
-    return objects
