@@ -1,3 +1,4 @@
+import pickle
 from datetime import datetime, timezone
 from inspect import cleandoc
 from telegram.ext import (Updater, Dispatcher, PicklePersistence,
@@ -44,7 +45,7 @@ class LajujaBotUpdater(Updater):
         for chat_id, channels in chat_data.items():
             for channel_id, channel_name in channels.items():
                 if channel_id in bot_data:
-                    bot_data[channel_id][subscribers].append(chat_id)
+                    bot_data[channel_id]["subscribers"].append(chat_id)
                 else:
                     success, uuid = self.wh_handler.hook.subscribe_stream_changed(channel_id, self.callback_stream_changed)
                     if success:
@@ -80,7 +81,7 @@ class LajujaBotUpdater(Updater):
                     else:
                         text = '{0} is live on Twitch!\n https://twitch.tv/{0}'.format(channel_name)
                     self.bot.send_message(chat_id=chat_id, text=text)
-            break
+                break
 
     
     def start(self, update, context):
@@ -259,3 +260,15 @@ class LajujaBotUpdater(Updater):
                 text += "\n" + channel_name
 
         context.bot.send_message(chat_id=update.message.chat_id, text=text)
+
+
+
+def read_pickle(openfile):
+    objects = []
+    with open(openfile, "rb") as f:
+        while True:
+            try:
+                objects.append(pickle.load(f))
+            except EOFError:
+                break
+    return objects
