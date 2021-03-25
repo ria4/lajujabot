@@ -67,17 +67,21 @@ class LajujaBotUpdater(Updater):
             return
 
         channel_id = data["user_id"]
+        game = data["game_name"]
         title = data["title"]
 
         for channel_subs in self.dispatcher.bot_data.values():
             if channel_subs["subscription_uuid"] == uuid:
                 for chat_id in channel_subs["subscribers"]:
                     # we retrieve our user-defined channel_name,
-                    # because the one returned in data["user_name"] is de-capitalized
-                    # it's ugly, and also it might not work with our /unsub
+                    # because the one returned in data["user_name"] is de-capitalized,
+                    # which is ugly, and also it might not work with our /unsub
                     channel_name = self.dispatcher.chat_data[chat_id][channel_id]
                     if title:
-                        text = '{0} is live on Twitch!\n ~ {1} ~\n https://twitch.tv/{0}'.format(channel_name, title)
+                        if game:
+                            text = '{0} is streaming {1}!\n « {2} »\n https://twitch.tv/{0}\n'.format(channel_name, game, title)
+                        else:
+                            text = '{0} is live on Twitch!\n « {1} »\n https://twitch.tv/{0}\n'.format(channel_name, title)
                     else:
                         text = '{0} is live on Twitch!\n https://twitch.tv/{0}'.format(channel_name)
                     self.bot.send_message(chat_id=chat_id, text=text)
