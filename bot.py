@@ -1,8 +1,12 @@
+import logging
 import pickle
 from datetime import datetime, timezone
 from inspect import cleandoc
 from telegram.ext import (Updater, Dispatcher, PicklePersistence,
                           CommandHandler, MessageHandler, Filters)
+
+
+logger = logging.getLogger(__name__)
 
 
 class LajujaBotUpdater(Updater):

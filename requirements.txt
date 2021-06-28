@@ -13,4 +13,4 @@ python-telegram-bot>=13.2
 six==1.11.0
 Werkzeug==0.14.1
 requests>=2.20.0
-twitchAPI>=2.2.4
+twitchAPI>=2.3.2
