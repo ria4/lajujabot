@@ -33,15 +33,21 @@ class LajujaBotUpdater(Updater):
         self.restore_bot_data()
 
     def register_handlers(self):
-        self.dispatcher.add_handler(CommandHandler('start', self.start))
-        self.dispatcher.add_handler(CommandHandler('sub', self.sub))
-        self.dispatcher.add_handler(CommandHandler('unsub', self.unsub))
-        self.dispatcher.add_handler(CommandHandler('unsub_all', self.unsub_all))
-        self.dispatcher.add_handler(CommandHandler('import', self.subs_import))
-        self.dispatcher.add_handler(CommandHandler('list', self.list))
-        self.dispatcher.add_handler(CommandHandler('help', self.help))
-        self.dispatcher.add_handler(CommandHandler('about', self.about))
-        self.dispatcher.add_handler(MessageHandler(Filters.command, self.unknown))
+        if self.config["OopsItsBroken"] == "True":
+            self.dispatcher.add_handler(CommandHandler('start', self.start))
+            self.dispatcher.add_handler(CommandHandler('help', self.help))
+            self.dispatcher.add_handler(CommandHandler('about', self.about))
+            self.dispatcher.add_handler(MessageHandler(Filters.command, self.broken))
+        else:
+            self.dispatcher.add_handler(CommandHandler('start', self.start))
+            self.dispatcher.add_handler(CommandHandler('sub', self.sub))
+            self.dispatcher.add_handler(CommandHandler('unsub', self.unsub))
+            self.dispatcher.add_handler(CommandHandler('unsub_all', self.unsub_all))
+            self.dispatcher.add_handler(CommandHandler('import', self.subs_import))
+            self.dispatcher.add_handler(CommandHandler('list', self.list))
+            self.dispatcher.add_handler(CommandHandler('help', self.help))
+            self.dispatcher.add_handler(CommandHandler('about', self.about))
+            self.dispatcher.add_handler(MessageHandler(Filters.command, self.unknown))
 
     def restore_bot_data(self):
         chat_data = self.persistence.get_chat_data()
@@ -119,6 +125,12 @@ class LajujaBotUpdater(Updater):
 
     def unknown(self, update, context):
         text = """There is no such command. Do you need some /help?"""
+        context.bot.send_message(chat_id=update.message.chat_id, text=cleandoc(text))
+
+
+    def broken(self, update, context):
+        text = """Lajujabot is asleep right now. 😴
+                  There's been major changes to the Twitch API, which are not supported by our backend yet. Hopefully this'll be sorted out by the end of the summer. Please come back later. 🙏"""
         context.bot.send_message(chat_id=update.message.chat_id, text=cleandoc(text))
 
 

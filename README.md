@@ -44,11 +44,12 @@ Create a `config.json` with the mentioned values:
     "TwitchAppClientSecret": "TWITCH_APP_CLIENT_SECRET",
     "CallbackURL": "https://mydomain.tld/lajujabot-webhook/",
     "ListeningPort": "15151",
-    "PersistenceFile": "/opt/lajujabot/subscriptions.pickle"
+    "PersistenceFile": "/opt/lajujabot/subscriptions.pickle",
+    "LogFile": "/opt/lajujabot/error.log"
 }
 ```
 
-Path `/lajujabot-webhook/` and port 15151 are mainly suggestions. It's sensible to keep the persistence file in the bot directory, but you can get creative if you want.
+Path `/lajujabot-webhook/` and port 15151 are mainly suggestions. It's sensible to keep the persistence and log files in the bot directory, but you can get creative if you want.
 
 The bot should be able to start now:
 
