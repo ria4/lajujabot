@@ -12,16 +12,19 @@ logger = logging.getLogger(__name__)
 class LajujaBotUpdater(Updater):
     """
     This bot has persistent chat_data to enable seamless restoration.
-    chat_data are dicts of the following structure:
-        { <channel_id_1> : <channel_name_1>,
-          <channel_id_2> : <channel_name_2>, ...}
+    chat_data is a dict of the following structure:
+        { <chat_id_1> : <context_chat_data_1>,
+          <chat_id_2> : <context_chat_data_2>, ...}
+    where context_chat_datas are of the following structure:
+        { <broadcaster_id_1> : <broadcaster_name_1>,
+          <broadcaster_id_2> : <broadcaster_name_2>, ...}
 
     bot_data is a non-persistent dict of the following structure:
-        { <channel_id_1> : {"subscription_uuid": <subscription_uuid>,
-                            "subscribers": [chat_id_1, chat_id_2, ...] },
-          <channel_id_2> : {...}, etc. }
-
+        { <broadcaster_id_1> : {"subscription_uuid": <subscription_uuid>,
+                                "subscribers": [<chat_id_1>, <chat_id_2>, ...] },
+          <broadcaster_id_2> : {...}, etc. }
     """
+
     def __init__(self, config, wh_handler):
         self.config = config
         self.wh_handler = wh_handler
@@ -49,24 +52,36 @@ class LajujaBotUpdater(Updater):
             self.dispatcher.add_handler(CommandHandler('about', self.about))
             self.dispatcher.add_handler(MessageHandler(Filters.command, self.unknown))
 
+    def _get_broadcaster_id(broadcaster_name):
+        return self.wh_handler.get_broadcaster_id_clean(broadcaster_name)
+
+    def _get_stream_info(broadcaster_id):
+        return self.wh_handler.get_channel_information_clean(broadcaster_id)
+
+    def _subscribe_stream_online(broadcaster_id, broadcaster_name):
+        return self.wh_handler.listen_stream_online_clean(broadcaster_id, broadcaster_name,
+                                                          self.callback_stream_changed)
+
+    def _unsubscribe(uuid):
+        self.wh_handler.hook.unsubscribe_topic(uuid)
+
     def restore_bot_data(self):
         chat_data = self.persistence.get_chat_data()
         bot_data = {}
-        for chat_id, channels in chat_data.items():
-            for channel_id, channel_name in channels.items():
-                if channel_id in bot_data:
-                    bot_data[channel_id]["subscribers"].append(chat_id)
+        for chat_id, broadcasters in chat_data.items():
+            for broadcaster_id, broadcaster_name in broadcasters.items():
+                if broadcaster_id in bot_data:
+                    bot_data[broadcaster_id]["subscribers"].append(chat_id)
                 else:
-                    success, uuid = self.wh_handler.hook.subscribe_stream_changed(channel_id, self.callback_stream_changed)
-                    if success:
-                        bot_data[channel_id] = {"subscription_uuid": uuid, "subscribers": [chat_id]}
+                    uuid = self._subscribe_stream_online(broadcaster_id, broadcaster_name)
+                    if uuid:
+                        bot_data[broadcaster_id] = {"subscription_uuid": uuid, "subscribers": [chat_id]}
         self.dispatcher.bot_data = bot_data
 
 
     def callback_stream_changed(self, uuid, data):
 
-        if data["type"] == "offline":
-            return
+        data = data["event"]
 
         started_at = data["started_at"]
         delta = datetime.now(timezone.utc) - datetime.fromisoformat(started_at[:-1]+"+00:00")
@@ -76,24 +91,23 @@ class LajujaBotUpdater(Updater):
             # we do not want to send another notification
             return
 
-        channel_id = data["user_id"]
-        game = data["game_name"]
-        title = data["title"]
+        broadcaster_id = data["broadcaster_user_id"]
+        game, title = self._get_stream_info(broadcaster_id)
 
-        for channel_subs in self.dispatcher.bot_data.values():
-            if channel_subs["subscription_uuid"] == uuid:
-                for chat_id in channel_subs["subscribers"]:
-                    # we retrieve our user-defined channel_name,
+        for subscriptions in self.dispatcher.bot_data.values():
+            if subscriptions["subscription_uuid"] == uuid:
+                for chat_id in subscriptions["subscribers"]:
+                    # we retrieve our user-defined broadcaster_name,
                     # because the one returned in data["user_name"] is de-capitalized,
                     # which is ugly, and also it might not work with our /unsub
-                    channel_name = self.dispatcher.chat_data[chat_id][channel_id]
+                    broadcaster_name = self.dispatcher.chat_data[chat_id][broadcaster_id]
                     if title:
                         if game:
-                            text = '{0} is streaming {1}!\n « {2} »\n https://twitch.tv/{0}\n'.format(channel_name, game, title)
+                            text = '{0} is streaming {1}!\n « {2} »\n https://twitch.tv/{0}\n'.format(broadcaster_name, game, title)
                         else:
-                            text = '{0} is live on Twitch!\n « {1} »\n https://twitch.tv/{0}\n'.format(channel_name, title)
+                            text = '{0} is live on Twitch!\n « {1} »\n https://twitch.tv/{0}\n'.format(broadcaster_name, title)
                     else:
-                        text = '{0} is live on Twitch!\n https://twitch.tv/{0}'.format(channel_name)
+                        text = '{0} is live on Twitch!\n https://twitch.tv/{0}'.format(broadcaster_name)
                     self.bot.send_message(chat_id=chat_id, text=text)
                 break
 
@@ -134,28 +148,31 @@ class LajujaBotUpdater(Updater):
         context.bot.send_message(chat_id=update.message.chat_id, text=cleandoc(text))
 
 
-    def sub(self, update, context, channel_id=None, channel_name=None):
-        # if one of channel_id or channel_name is present,
-        # both or them are supposed to be present and correspond to a valid channel
+    def sub(self, update, context, broadcaster_id=None, broadcaster_name=None):
+        # if one of broadcaster_id or broadcaster_name is present,
+        # both or them are supposed to be present and correspond to a valid broadcaster
+
+        chat_id = update.message.chat_id
 
         # if you ever want to remove the 100-subs limit, just delete this part
         if len(context.chat_data) >= 100:
-            text = "There's already 100 subscriptions on this chat and I think that's quite enough. If you want more, tweak the code and deploy it yourself. Or send a few $$$ to @oriane_tury so that she can help you."
-            context.bot.send_message(chat_id=update.message.chat_id, text=text)
+            text = "There's already 100 subscriptions on this chat and I believe that's quite enough. If you want more, tweak the code and deploy it yourself. Or send a few $$$ to @oriane_tury so that she can help you."
+            context.bot.send_message(chat_id=chat_id, text=text)
             return
 
-        if channel_id or channel_name:
-            if channel_id not in context.bot_data:
-                success, uuid = self.wh_handler.hook.subscribe_stream_changed(channel_id, self.callback_stream_changed)
-                if not success:
-                    text = "Something went wrong with the subscription to {}'s channel. If you send a message to @oriane_tury, she'll try to sort things out. Sorry!".format(channel_name)
-                    context.bot.send_message(chat_id=update.message.chat_id, text=text)
+        if broadcaster_id or broadcaster_name:
+            if broadcaster_id not in context.bot_data:
+                uuid = self._subscribe_stream_online(broadcaster_id, broadcaster_name)
+                if not uuid:
+                    text = "Something went wrong with the subscription to {}'s channel. If you send a message to @oriane_tury, she'll try to sort things out. Sorry!".format(broadcaster_name)
+                    context.bot.send_message(chat_id=chat_id, text=text)
                     return
-                context.bot_data[channel_id] = {"subscription_uuid": uuid, "subscribers": []}
-            context.chat_data[channel_id] = channel_name
-            context.bot_data[channel_id]["subscribers"].append(update.message.chat_id)
-            text = "You were successfully subscribed to {}'s channel!".format(channel_name)
-            context.bot.send_message(chat_id=update.message.chat_id, text=text)
+                context.bot_data[broadcaster_id] = {"subscription_uuid": uuid, "subscribers": []}
+
+            context.chat_data[broadcaster_id] = broadcaster_name
+            context.bot_data[broadcaster_id]["subscribers"].append(chat_id)
+            text = "You were successfully subscribed to {}'s channel!".format(broadcaster_name)
+            context.bot.send_message(chat_id=chat_id, text=text)
             return
 
         if not context.args:
@@ -166,42 +183,42 @@ class LajujaBotUpdater(Updater):
             if len(context.args) > 1:
                 text += "Please send one channel name at a time.\n"
 
-            channel_name = context.args[0]
-            if channel_name in context.chat_data.values():
-                text += "You're already subscribed to {}'s channel, so we're good here.".format(channel_name)
+            broadcaster_name = context.args[0]
+            if broadcaster_name in context.chat_data.values():
+                text += "You're already subscribed to {}'s channel, so we're good here.".format(broadcaster_name)
 
             else:
-                channel_data = self.wh_handler.get_users(logins=[channel_name])
-                if not channel_data["data"]:
+                broadcaster_id = self._get_broadcaster_id(broadcaster_name)
+                if not broadcaster_data["data"]:
                     text += "This account cannot be found. Please check your input."
 
                 else:
-                    channel_id = channel_data["data"][0]["id"]
-                    if channel_id not in context.bot_data:
-                        success, uuid = self.wh_handler.hook.subscribe_stream_changed(channel_id, self.callback_stream_changed)
-                        if not success:
-                            text += "Something went wrong with the subscription to {}'s channel. If you send a message to @oriane_tury, she'll try to sort things out. Sorry!".format(channel_name)
-                            context.bot.send_message(chat_id=update.message.chat_id, text=text)
+                    broadcaster_id = broadcaster_data["data"][0]["id"]
+                    if broadcaster_id not in context.bot_data:
+                        uuid = self._subscribe_stream_online(broadcaster_id, broadcaster_name)
+                        if not uuid:
+                            text += "Something went wrong with the subscription to {}'s channel. If you send a message to @oriane_tury, she'll try to sort things out. Sorry!".format(broadcaster_name)
+                            context.bot.send_message(chat_id=chat_id, text=text)
                             return
-                        context.bot_data[channel_id] = {"subscription_uuid": uuid, "subscribers": []}
-                    context.chat_data[channel_id] = channel_name
-                    context.bot_data[channel_id]["subscribers"].append(update.message.chat_id)
-                    text += "You were successfully subscribed to {}'s channel!".format(channel_name)
+                        context.bot_data[broadcaster_id] = {"subscription_uuid": uuid, "subscribers": []}
+                    context.chat_data[broadcaster_id] = broadcaster_name
+                    context.bot_data[broadcaster_id]["subscribers"].append(chat_id)
+                    text += "You were successfully subscribed to {}'s channel!".format(broadcaster_name)
 
-        context.bot.send_message(chat_id=update.message.chat_id, text=text)
+        context.bot.send_message(chat_id=chat_id, text=text)
 
 
-    def unsub(self, update, context, channel_id=None):
-        # if channel_id is present, it is supposed to be a valid channel subscribed by the user
+    def unsub(self, update, context, broadcaster_id=None):
+        # if broadcaster_id is present, it is supposed to be a valid broadcaster subscribed by the user
 
-        if channel_id:
-            channel_name = context.chat_data[channel_id]
-            context.chat_data.pop(channel_id)
-            context.bot_data[channel_id]["subscribers"].remove(update.message.chat_id)
-            if len(context.bot_data[channel_id]["subscribers"]) == 0:
-                self.wh_handler.hook.unsubscribe(context.bot_data[channel_id]["subscription_uuid"])
-                context.bot_data.pop(channel_id)
-            text = "You won't receive notifications about {} anymore.".format(channel_name)
+        if broadcaster_id:
+            broadcaster_name = context.chat_data[broadcaster_id]
+            context.chat_data.pop(broadcaster_id)
+            context.bot_data[broadcaster_id]["subscribers"].remove(update.message.chat_id)
+            if len(context.bot_data[broadcaster_id]["subscribers"]) == 0:
+                self._unsubscribe(context.bot_data[broadcaster_id]["subscription_uuid"])
+                context.bot_data.pop(broadcaster_id)
+            text = "You won't receive notifications about {} anymore.".format(broadcaster_name)
             context.bot.send_message(chat_id=update.message.chat_id, text=text)
             return
 
@@ -213,17 +230,17 @@ class LajujaBotUpdater(Updater):
             if len(context.args) > 1:
                 text += "Please send one channel name at a time.\n"
 
-            channel_name = context.args[0]
-            if not channel_name in context.chat_data.values():
-                text += "You weren't subscribed to the channel '{}', so we're good here.".format(channel_name)
+            broadcaster_name = context.args[0]
+            if not broadcaster_name in context.chat_data.values():
+                text += "You weren't subscribed to the channel '{}', so we're good here.".format(broadcaster_name)
 
             else:
-                channel_id = list(context.chat_data.keys())[list(context.chat_data.values()).index(channel_name)]
-                context.chat_data.pop(channel_id)
-                context.bot_data[channel_id]["subscribers"].remove(update.message.chat_id)
-                if len(context.bot_data[channel_id]["subscribers"]) == 0:
-                    self.wh_handler.hook.unsubscribe(context.bot_data[channel_id]["subscription_uuid"])
-                    context.bot_data.pop(channel_id)
+                broadcaster_id = list(context.chat_data.keys())[list(context.chat_data.values()).index(broadcaster_name)]
+                context.chat_data.pop(broadcaster_id)
+                context.bot_data[broadcaster_id]["subscribers"].remove(update.message.chat_id)
+                if len(context.bot_data[broadcaster_id]["subscribers"]) == 0:
+                    self._unsubscribe(context.bot_data[broadcaster_id]["subscription_uuid"])
+                    context.bot_data.pop(broadcaster_id)
                 text += "You won't receive notifications about {} anymore.".format(context.args[0])
 
         context.bot.send_message(chat_id=update.message.chat_id, text=text)
@@ -236,8 +253,8 @@ class LajujaBotUpdater(Updater):
             context.bot.send_message(chat_id=update.message.chat_id, text=text)
             return
 
-        for channel_id in list(context.chat_data.keys()):
-            self.unsub(update, context, channel_id)
+        for broadcaster_id in list(context.chat_data.keys()):
+            self.unsub(update, context, broadcaster_id)
 
 
     def subs_import(self, update, context):
@@ -255,10 +272,10 @@ class LajujaBotUpdater(Updater):
                 if not followed_data["data"]:
                     text = "This account follows no other account. Stop messing around."
                 else:
-                    for followed_channel in followed_data["data"]:
+                    for followed_broadcaster in followed_data["data"]:
                         self.sub(update, context,
-                                 channel_id=followed_channel["to_id"],
-                                 channel_name=followed_channel["to_name"])
+                                 broadcaster_id=followed_broadcaster["to_id"],
+                                 broadcaster_name=followed_broadcaster["to_name"])
                     if followed_data["total"] == 100:
                         text = "You cannot import more than 100 accounts. Be reasonable."
 
@@ -276,7 +293,7 @@ class LajujaBotUpdater(Updater):
 
         else:
             text = "Here's a list of your subscriptions:"
-            for channel_name in context.chat_data.values():
-                text += "\n" + channel_name
+            for broadcaster_name in context.chat_data.values():
+                text += "\n" + broadcaster_name
 
         context.bot.send_message(chat_id=update.message.chat_id, text=text)
