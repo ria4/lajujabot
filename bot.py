@@ -106,7 +106,7 @@ class LajujaBotUpdater(Updater):
         self.dispatcher.bot_data = bot_data
 
 
-    def callback_stream_changed(self, uuid, data):
+    async def callback_stream_changed(self, uuid, data):
 
         data = data["event"]
 

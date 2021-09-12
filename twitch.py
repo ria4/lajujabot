@@ -48,7 +48,7 @@ class TwitchWebhookHandler(Twitch):
             error_msg = error_msg.format(broadcaster_id, e)
             logger.error(error_msg)
             return None, None
-        return res["data"]["game_name"], res["data"]["title"]
+        return res["data"][0]["game_name"], res["data"][0]["title"]
 
     def listen_stream_online_clean(self, broadcaster_id, broadcaster_name, callback):
         try:
