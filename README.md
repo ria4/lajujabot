@@ -63,7 +63,7 @@ Note that you can specify an alternative configuration file using `python3 main.
 
 This bot is a rework of [misterino](https://github.com/avivace/misterino), by Denni Bevilacqua and Antonio Vivace.
 
-It is also indebted to the [twitchAPI](https://github.com/Teekeks/pyTwitchAPI) implementation by Lena 'Teekeks' During.
+It is mostly indebted to the [twitchAPI](https://github.com/Teekeks/pyTwitchAPI) implementation by Lena 'Teekeks' During.
 
 ### TODO
 

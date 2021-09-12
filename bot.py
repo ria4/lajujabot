@@ -1,12 +1,30 @@
+import asyncio
 import logging
 import pickle
+
 from datetime import datetime, timezone
 from inspect import cleandoc
-from telegram.ext import (Updater, Dispatcher, PicklePersistence,
+from queue import Queue
+
+from telegram.ext import (Updater, Dispatcher,
+                          ExtBot, JobQueue, PicklePersistence,
                           CommandHandler, MessageHandler, Filters)
+from telegram.utils.request import Request
 
 
 logger = logging.getLogger(__name__)
+
+
+class LajujaBotDispatcher(Dispatcher):
+    """
+    We need to create a new event loop
+    because the Dispatcher runs outside the main thread.
+    """
+
+    def start(self, ready=None):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        super().start(ready)
 
 
 class LajujaBotUpdater(Updater):
@@ -28,10 +46,19 @@ class LajujaBotUpdater(Updater):
     def __init__(self, config, wh_handler):
         self.config = config
         self.wh_handler = wh_handler
+
+        con_pool_size = 4 + 4
+        request_kwargs = {"con_pool_size": con_pool_size}
+        bot = ExtBot(config["TelegramBotToken"], request=Request(**request_kwargs))
         persistence = PicklePersistence(filename=config["PersistenceFile"],
                                         store_user_data=False,
                                         store_bot_data=False)
-        super().__init__(token=config["TelegramBotToken"], persistence=persistence)
+        dispatcher = LajujaBotDispatcher(bot,
+                                         Queue(),
+                                         job_queue=JobQueue(),
+                                         persistence=persistence)
+        super().__init__(dispatcher=dispatcher, workers=None)
+
         self.register_handlers()
         self.restore_bot_data()
 
@@ -52,17 +79,17 @@ class LajujaBotUpdater(Updater):
             self.dispatcher.add_handler(CommandHandler('about', self.about))
             self.dispatcher.add_handler(MessageHandler(Filters.command, self.unknown))
 
-    def _get_broadcaster_id(broadcaster_name):
+    def _get_broadcaster_id(self, broadcaster_name):
         return self.wh_handler.get_broadcaster_id_clean(broadcaster_name)
 
-    def _get_stream_info(broadcaster_id):
+    def _get_stream_info(self, broadcaster_id):
         return self.wh_handler.get_channel_information_clean(broadcaster_id)
 
-    def _subscribe_stream_online(broadcaster_id, broadcaster_name):
+    def _subscribe_stream_online(self, broadcaster_id, broadcaster_name):
         return self.wh_handler.listen_stream_online_clean(broadcaster_id, broadcaster_name,
                                                           self.callback_stream_changed)
 
-    def _unsubscribe(uuid):
+    def _unsubscribe(self, uuid):
         self.wh_handler.hook.unsubscribe_topic(uuid)
 
     def restore_bot_data(self):
@@ -85,6 +112,7 @@ class LajujaBotUpdater(Updater):
 
         started_at = data["started_at"]
         delta = datetime.now(timezone.utc) - datetime.fromisoformat(started_at[:-1]+"+00:00")
+        #TODO log
         #print("Notification delay: {} seconds".format(delta.seconds))
         if (delta.days > 0) or (delta.seconds > 300):
             # the stream changed but was already up for some time
@@ -92,14 +120,17 @@ class LajujaBotUpdater(Updater):
             return
 
         broadcaster_id = data["broadcaster_user_id"]
+        #TODO log
+
         game, title = self._get_stream_info(broadcaster_id)
+        #TODO log
 
         for subscriptions in self.dispatcher.bot_data.values():
             if subscriptions["subscription_uuid"] == uuid:
                 for chat_id in subscriptions["subscribers"]:
                     # we retrieve our user-defined broadcaster_name,
-                    # because the one returned in data["user_name"] is de-capitalized,
-                    # which is ugly, and also it might not work with our /unsub
+                    # because the one returned in the "broadcaster_user_name" field
+                    # might not work with the internal name needed for /unsub
                     broadcaster_name = self.dispatcher.chat_data[chat_id][broadcaster_id]
                     if title:
                         if game:
@@ -189,11 +220,10 @@ class LajujaBotUpdater(Updater):
 
             else:
                 broadcaster_id = self._get_broadcaster_id(broadcaster_name)
-                if not broadcaster_data["data"]:
+                if not broadcaster_id:
                     text += "This account cannot be found. Please check your input."
 
                 else:
-                    broadcaster_id = broadcaster_data["data"][0]["id"]
                     if broadcaster_id not in context.bot_data:
                         uuid = self._subscribe_stream_online(broadcaster_id, broadcaster_name)
                         if not uuid:

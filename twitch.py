@@ -2,7 +2,7 @@ import logging
 
 from twitchAPI import (Twitch, EventSub,
                        TwitchAPIException, UnauthorizedException,
-                       MissingScopeException, ValueError, TwitchAuthorizationException,
+                       MissingScopeException, TwitchAuthorizationException,
                        TwitchBackendException, EventSubSubscriptionConflict,
                        EventSubSubscriptionTimeout, EventSubSubscriptionError)
 
@@ -27,37 +27,40 @@ class TwitchWebhookHandler(Twitch):
         self.hook = hook
         hook.start()
 
-    def get_broadcaster_id_clean(broadcaster_name):
+    def get_broadcaster_id_clean(self, broadcaster_name):
         try:
             res = self.get_users(logins=[broadcaster_name])
         except (TwitchAPIException, UnauthorizedException,
                 MissingScopeException, ValueError,
                 TwitchAuthorizationException, TwitchBackendException) as e:
             error_msg = "Failed to get information about broadcaster {} with error {}"
-            error_msg.format(broadcaster_name, e)
+            error_msg = error_msg.format(broadcaster_name, e)
             logger.error(error_msg)
             return None
         return res["data"][0]["id"]
 
-    def get_channel_information_clean(broadcaster_id):
+    def get_channel_information_clean(self, broadcaster_id):
         try:
             res = self.get_channel_information(broadcaster_id)
         except (TwitchAPIException, UnauthorizedException,
                 TwitchAuthorizationException, TwitchBackendException) as e:
             error_msg = "Failed to get information about channel {} with error {}"
-            error_msg.format(broadcaster_id, e)
+            error_msg = error_msg.format(broadcaster_id, e)
             logger.error(error_msg)
             return None, None
         return res["data"]["game_name"], res["data"]["title"]
 
-    def listen_stream_online_clean(broadcaster_id, broadcaster_name, callback):
+    def listen_stream_online_clean(self, broadcaster_id, broadcaster_name, callback):
         try:
             uuid = self.hook.listen_stream_online(broadcaster_id, callback)
         except (EventSubSubscriptionConflict, EventSubSubscriptionTimeout, EventSubSubscriptionError) as e:
             error_msg = "Subscription to broadcaster {} (id {}) failed with error {}"
-            error_msg.format(broadcaster_name, broadcaster_id, e)
+            error_msg = error_msg.format(broadcaster_name, broadcaster_id, e)
             logger.error(error_msg)
             return None
+        info_msg = "Subscribed to stream.online events for broadcaster {} (id {})"
+        info_msg = info_msg.format(broadcaster_name, broadcaster_id)
+        logger.info(info_msg)
         return uuid
 
     def __del__(self):

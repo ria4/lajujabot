@@ -21,7 +21,7 @@ try:
 
     # Start Telegram bot
     mybot = LajujaBotUpdater(config, wh_handler)
-    mybot.start_polling(clean=True)
+    mybot.start_polling(drop_pending_updates=True)
     logger.info("Lajujabot has begun polling updates from Telegram")
 
 except:
