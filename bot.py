@@ -45,7 +45,7 @@ class LajujaBotUpdater(Updater):
 
     def __init__(self, config, wh_handler):
         self.config = config
-        self.wh_handler = wh_handler
+        self._wh_handler = wh_handler
 
         con_pool_size = 4 + 4
         request_kwargs = {"con_pool_size": con_pool_size}
@@ -80,17 +80,20 @@ class LajujaBotUpdater(Updater):
             self.dispatcher.add_handler(MessageHandler(Filters.command, self.unknown))
 
     def _get_broadcaster_id(self, broadcaster_name):
-        return self.wh_handler.get_broadcaster_id_clean(broadcaster_name)
+        return self._wh_handler.get_broadcaster_id_clean(broadcaster_name)
 
     def _get_stream_info(self, broadcaster_id):
-        return self.wh_handler.get_channel_information_clean(broadcaster_id)
+        return self._wh_handler.get_channel_information_clean(broadcaster_id)
+
+    def _get_followed_channels(self, user_id):
+        return self._wh_handler.get_followed_channels(user_id)
 
     def _subscribe_stream_online(self, broadcaster_id, broadcaster_name):
-        return self.wh_handler.listen_stream_online_clean(broadcaster_id, broadcaster_name,
-                                                          self.callback_stream_changed)
+        return self._wh_handler.listen_stream_online_clean(broadcaster_id, broadcaster_name,
+                                                           self.callback_stream_changed)
 
     def _unsubscribe(self, uuid):
-        self.wh_handler.hook.unsubscribe_topic(uuid)
+        self._wh_handler.hook.unsubscribe_topic(uuid)
 
     def restore_bot_data(self):
         chat_data = self.persistence.get_chat_data()
@@ -112,18 +115,18 @@ class LajujaBotUpdater(Updater):
 
         started_at = data["started_at"]
         delta = datetime.now(timezone.utc) - datetime.fromisoformat(started_at[:-1]+"+00:00")
-        #TODO log
-        #print("Notification delay: {} seconds".format(delta.seconds))
         if (delta.days > 0) or (delta.seconds > 300):
             # the stream changed but was already up for some time
             # we do not want to send another notification
             return
 
         broadcaster_id = data["broadcaster_user_id"]
-        #TODO log
+        broadcaster_name_official = data["broadcaster_user_name"]
+        info_msg = "Broadcaster {} started streaming (notification received from twitch with a {}s delay)"
+        info_msg = info_msg.format(broadcaster_name_official, delta.seconds)
+        logger.info(info_msg)
 
         game, title = self._get_stream_info(broadcaster_id)
-        #TODO log
 
         for subscriptions in self.dispatcher.bot_data.values():
             if subscriptions["subscription_uuid"] == uuid:
@@ -134,12 +137,18 @@ class LajujaBotUpdater(Updater):
                     broadcaster_name = self.dispatcher.chat_data[chat_id][broadcaster_id]
                     if title:
                         if game:
-                            text = '{0} is streaming {1}!\n « {2} »\n https://twitch.tv/{0}\n'.format(broadcaster_name, game, title)
+                            text = '{0} is streaming {1}!\n « {2} »\n https://twitch.tv/{0}'
+                            text = text.format(broadcaster_name, game, title)
                         else:
-                            text = '{0} is live on Twitch!\n « {1} »\n https://twitch.tv/{0}\n'.format(broadcaster_name, title)
+                            text = '{0} is live on Twitch!\n « {1} »\n https://twitch.tv/{0}'
+                            text = text.format(broadcaster_name, title)
                     else:
-                        text = '{0} is live on Twitch!\n https://twitch.tv/{0}'.format(broadcaster_name)
+                        text = '{0} is live on Twitch!\n https://twitch.tv/{0}'
+                        text = text.format(broadcaster_name)
                     self.bot.send_message(chat_id=chat_id, text=text)
+                    info_msg = "Sent message to chat {}:\n{}"
+                    info_msg = info_msg.format(chat_id, text)
+                    logger.info(info_msg)
                 break
 
     
@@ -294,20 +303,21 @@ class LajujaBotUpdater(Updater):
             text = "You must submit a Twitch account name for this to work."
 
         else:
-            user_data = self.wh_handler.get_users(logins=[context.args[0]])
+            user_name = context.args[0]
+            user_id = self._get_broadcaster_id(user_name)
 
-            if user_data["data"]:
-                user_id = user_data["data"][0]["id"]
-                followed_data = self.wh_handler.get_users_follows(from_id=user_id, first=100)
-                if not followed_data["data"]:
-                    text = "This account follows no other account. Stop messing around."
+            if user_id:
+                followed_channels = self._get_followed_channels(user_id)
+
+                if not followed_channels:
+                    text = "It seems this account does not follow any other account."
                 else:
-                    for followed_broadcaster in followed_data["data"]:
+                    for followed_broadcaster in followed_channels:
                         self.sub(update, context,
                                  broadcaster_id=followed_broadcaster["to_id"],
                                  broadcaster_name=followed_broadcaster["to_name"])
-                    if followed_data["total"] == 100:
-                        text = "You cannot import more than 100 accounts. Be reasonable."
+                    if len(followed_channels) == 100:
+                        text = "You cannot import more than 100 accounts."
 
             else:
                 text = "This account cannot be found. Please check your input."

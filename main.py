@@ -14,6 +14,7 @@ logging.basicConfig(filename=config["LogFile"],
                     datefmt="%d/%m/%Y %H:%M:%S",
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.info("######## New session #######################################################################")
 
 try:
     # Start Twitch webhook
@@ -22,7 +23,7 @@ try:
     # Start Telegram bot
     mybot = LajujaBotUpdater(config, wh_handler)
     mybot.start_polling(drop_pending_updates=True)
-    logger.info("Lajujabot has begun polling updates from Telegram")
+    logger.info("######## Started polling Telegram updates ##################################################")
 
 except:
-    logger.exception("########## main.py crashed ##########")
+    logger.exception("######## main.py crashed ###################################################################")

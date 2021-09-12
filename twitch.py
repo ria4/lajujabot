@@ -40,7 +40,11 @@ class TwitchWebhookHandler(Twitch):
         if not res["data"]:
             # no broadcaster of this name could be found
             return None
-        return res["data"][0]["id"]
+        broadcaster_id = res["data"][0]["id"]
+        info_msg = "Retrieved id {} from broadcaster name {}"
+        info_msg = info_msg.format(broadcaster_id, broadcaster_name)
+        logger.info(info_msg)
+        return broadcaster_id
 
     def get_channel_information_clean(self, broadcaster_id):
         try:
@@ -51,7 +55,27 @@ class TwitchWebhookHandler(Twitch):
             error_msg = error_msg.format(broadcaster_id, e)
             logger.error(error_msg)
             return None, None
-        return res["data"][0]["game_name"], res["data"][0]["title"]
+        game = res["data"][0]["game_name"]
+        title = res["data"][0]["title"]
+        info_msg = "Retrieved stream information about broadcaster {} (game: {}, title: '{}')"
+        info_msg = info_msg.format(broadcaster_id, game, title)
+        logger.info(info_msg)
+        return game, title
+
+    def get_followed_channels(self, user_id):
+        try:
+            res = self.get_users_follows(from_id=user_id, first=100)
+        except (TwitchAPIException, UnauthorizedException, ValueError,
+                TwitchAuthorizationException, TwitchBackendException) as e:
+            error_msg = "Failed to get channels followed by twitch user {} with error {}"
+            error_msg = error_msg.format(user_id, e)
+            logger.error(error_msg)
+            return None
+        followed_channels = res["data"]
+        info_msg = "Retrieved channels followed by twitch user {}"
+        info_msg = info_msg.format(user_id)
+        logger.info(info_msg)
+        return followed_channels
 
     def listen_stream_online_clean(self, broadcaster_id, broadcaster_name, callback):
         try:
