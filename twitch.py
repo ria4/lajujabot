@@ -37,6 +37,9 @@ class TwitchWebhookHandler(Twitch):
             error_msg = error_msg.format(broadcaster_name, e)
             logger.error(error_msg)
             return None
+        if not res["data"]:
+            # no broadcaster of this name could be found
+            return None
         return res["data"][0]["id"]
 
     def get_channel_information_clean(self, broadcaster_id):
