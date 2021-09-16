@@ -38,7 +38,7 @@ class LajujaBotUpdater(Updater):
           <broadcaster_id_2> : <broadcaster_name_2>, ...}
 
     bot_data is a non-persistent dict of the following structure:
-        { <broadcaster_id_1> : {"subscription_uuid": <subscription_uuid>,
+        { <broadcaster_id_1> : {"subscription_id": <subscription_id_1>,
                                 "subscribers": [<chat_id_1>, <chat_id_2>, ...] },
           <broadcaster_id_2> : {...}, etc. }
     """
@@ -92,8 +92,8 @@ class LajujaBotUpdater(Updater):
         return self._wh_handler.listen_stream_online_clean(broadcaster_id, broadcaster_name,
                                                            self.callback_stream_changed)
 
-    def _unsubscribe(self, uuid):
-        self._wh_handler.hook.unsubscribe_topic(uuid)
+    def _unsubscribe(self, sub_id):
+        self._wh_handler.hook.unsubscribe_topic(sub_id)
 
     def restore_bot_data(self):
         chat_data = self.persistence.get_chat_data()
@@ -103,25 +103,26 @@ class LajujaBotUpdater(Updater):
                 if broadcaster_id in bot_data:
                     bot_data[broadcaster_id]["subscribers"].append(chat_id)
                 else:
-                    uuid = self._subscribe_stream_online(broadcaster_id, broadcaster_name)
-                    if uuid:
-                        bot_data[broadcaster_id] = {"subscription_uuid": uuid, "subscribers": [chat_id]}
+                    sub_id = self._subscribe_stream_online(broadcaster_id, broadcaster_name)
+                    if sub_id:
+                        bot_data[broadcaster_id] = {"subscription_uuid": sub_id, "subscribers": [chat_id]}
         self.dispatcher.bot_data = bot_data
 
 
-    async def callback_stream_changed(self, uuid, data):
+    async def callback_stream_changed(self, data):
 
-        data = data["event"]
+        sub_id = data["subscription"]["id"]
+        event = data["event"]
 
-        started_at = data["started_at"]
+        started_at = event["started_at"]
         delta = datetime.now(timezone.utc) - datetime.fromisoformat(started_at[:-1]+"+00:00")
         if (delta.days > 0) or (delta.seconds > 300):
             # the stream changed but was already up for some time
             # we do not want to send another notification
             return
 
-        broadcaster_id = data["broadcaster_user_id"]
-        broadcaster_name_official = data["broadcaster_user_name"]
+        broadcaster_id = event["broadcaster_user_id"]
+        broadcaster_name_official = event["broadcaster_user_name"]
         info_msg = "Broadcaster {} started streaming (notification received from twitch with a {}s delay)"
         info_msg = info_msg.format(broadcaster_name_official, delta.seconds)
         logger.info(info_msg)
@@ -129,7 +130,7 @@ class LajujaBotUpdater(Updater):
         game, title = self._get_stream_info(broadcaster_id)
 
         for subscriptions in self.dispatcher.bot_data.values():
-            if subscriptions["subscription_uuid"] == uuid:
+            if subscriptions["subscription_uuid"] == sub_id:
                 for chat_id in subscriptions["subscribers"]:
                     # we retrieve our user-defined broadcaster_name,
                     # because the one returned in the "broadcaster_user_name" field
@@ -202,12 +203,12 @@ class LajujaBotUpdater(Updater):
 
         if broadcaster_id or broadcaster_name:
             if broadcaster_id not in context.bot_data:
-                uuid = self._subscribe_stream_online(broadcaster_id, broadcaster_name)
-                if not uuid:
+                sub_id = self._subscribe_stream_online(broadcaster_id, broadcaster_name)
+                if not sub_id:
                     text = "Something went wrong with the subscription to {}'s channel. If you send a message to @oriane_tury, she'll try to sort things out. Sorry!".format(broadcaster_name)
                     context.bot.send_message(chat_id=chat_id, text=text)
                     return
-                context.bot_data[broadcaster_id] = {"subscription_uuid": uuid, "subscribers": []}
+                context.bot_data[broadcaster_id] = {"subscription_uuid": sub_id, "subscribers": []}
 
             context.chat_data[broadcaster_id] = broadcaster_name
             context.bot_data[broadcaster_id]["subscribers"].append(chat_id)
@@ -234,12 +235,12 @@ class LajujaBotUpdater(Updater):
 
                 else:
                     if broadcaster_id not in context.bot_data:
-                        uuid = self._subscribe_stream_online(broadcaster_id, broadcaster_name)
-                        if not uuid:
+                        sub_id = self._subscribe_stream_online(broadcaster_id, broadcaster_name)
+                        if not sub_id:
                             text += "Something went wrong with the subscription to {}'s channel. If you send a message to @oriane_tury, she'll try to sort things out. Sorry!".format(broadcaster_name)
                             context.bot.send_message(chat_id=chat_id, text=text)
                             return
-                        context.bot_data[broadcaster_id] = {"subscription_uuid": uuid, "subscribers": []}
+                        context.bot_data[broadcaster_id] = {"subscription_uuid": sub_id, "subscribers": []}
                     context.chat_data[broadcaster_id] = broadcaster_name
                     context.bot_data[broadcaster_id]["subscribers"].append(chat_id)
                     text += "You were successfully subscribed to {}'s channel!".format(broadcaster_name)
