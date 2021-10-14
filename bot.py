@@ -122,7 +122,17 @@ class LajujaBotUpdater(Updater):
         #logger.info(info_msg)
 
         # since there's no method for this yet, at least empty the related entry
-        self.dispatcher.chat_data[chat_id] = {}
+        chat_data = self.dispatcher.chat_data
+        bot_data = self.dispatcher.bot_data
+        broadcaster_ids = chat_data[chat_id].keys()
+        for broadcaster_id in broadcaster_ids:
+            chat_data[chat_id].pop(broadcaster_id)
+            subscription = bot_data[broadcaster_id]
+            subscription["subscribers"].remove(chat_id)
+            if len(subscription["subscribers"]) == 0:
+                self._unsubscribe(subscription["subscription_uuid"])
+                bot_data.pop(broadcaster_id)
+        self.dispatcher.update_persistence()
         info_msg = "Removed all subscription data for chat {} from persistent data."
         info_msg = info_msg.format(chat_id)
         logger.info(info_msg)

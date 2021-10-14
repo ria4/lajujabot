@@ -59,6 +59,10 @@ python3 main.py
 
 Note that you can specify an alternative configuration file using `python3 main.py -c config2.json`.
 
+### TODO
+
+- Factor method for removing a `broadcaster_id` from the `chat_data` in `bot.py`.
+
 ### Credits
 
 This bot is a rework of [`misterino`](https://github.com/avivace/misterino), by Denni Bevilacqua and Antonio Vivace.
