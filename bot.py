@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from inspect import cleandoc
 from queue import Queue
 
+from telegram.error import Unauthorized
 from telegram.ext import (Updater, Dispatcher,
                           ExtBot, JobQueue, PicklePersistence,
                           CommandHandler, MessageHandler, Filters)
@@ -97,6 +98,11 @@ class LajujaBotUpdater(Updater):
 
     def restore_bot_data(self):
         chat_data = self.persistence.get_chat_data()
+
+        #empty_keys = [k for k,v in chat_data.items() if not v]
+        #for k in empty_keys:
+        #    self.delete_chat_data(k)
+
         bot_data = {}
         for chat_id, broadcasters in chat_data.items():
             for broadcaster_id, broadcaster_name in broadcasters.items():
@@ -107,6 +113,20 @@ class LajujaBotUpdater(Updater):
                     if sub_id:
                         bot_data[broadcaster_id] = {"subscription_uuid": sub_id, "subscribers": [chat_id]}
         self.dispatcher.bot_data = bot_data
+
+    def delete_chat_data(self, chat_id):
+        # remove chat key from chat_data
+        #self.dispatcher.remove_from_persistent_chat_data(chat_id)
+        #info_msg = "Removed for chat {} from persistent data."
+        #info_msg = info_msg.format(chat_id)
+        #logger.info(info_msg)
+
+        # since there's no method for this yet, at least empty the related entry
+        self.dispatcher.chat_data[chat_id] = {}
+        info_msg = "Removed all subscription data for chat {} from persistent data."
+        info_msg = info_msg.format(chat_id)
+        logger.info(info_msg)
+        return
 
 
     async def callback_stream_changed(self, data):
@@ -146,10 +166,16 @@ class LajujaBotUpdater(Updater):
                     else:
                         text = '{0} is live on Twitch!\n https://twitch.tv/{0}'
                         text = text.format(broadcaster_name)
-                    self.bot.send_message(chat_id=chat_id, text=text)
-                    info_msg = "Sent message to chat {}:\n{}"
-                    info_msg = info_msg.format(chat_id, text)
-                    logger.info(info_msg)
+                    try:
+                        self.bot.send_message(chat_id=chat_id, text=text)
+                        info_msg = "Sent message to chat {}:\n{}"
+                        info_msg = info_msg.format(chat_id, text)
+                        logger.info(info_msg)
+                    except Unauthorized as e:
+                        info_msg = "Sending a message to chat {} raised a telegram.error.Unauthorized: {}"
+                        info_msg = info_msg.format(chat_id, e)
+                        logger.info(info_msg)
+                        self.delete_chat_data(chat_id)
                 break
 
     
@@ -185,7 +211,7 @@ class LajujaBotUpdater(Updater):
 
     def broken(self, update, context):
         text = """Lajujabot is asleep right now. 😴
-                  There's been major changes to the Twitch API, which are not supported by our backend yet. Hopefully this'll be sorted out by the end of the summer. Please come back later. 🙏"""
+                  There's been major changes to the Twitch API, which are not fully supported by our backend yet. We're working on it, please come back later! 🙏"""
         context.bot.send_message(chat_id=update.message.chat_id, text=cleandoc(text))
 
 

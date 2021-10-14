@@ -33,8 +33,8 @@ class TwitchWebhookHandler(Twitch):
         except (TwitchAPIException, UnauthorizedException,
                 MissingScopeException, ValueError,
                 TwitchAuthorizationException, TwitchBackendException) as e:
-            error_msg = "Failed to get information about broadcaster {} with error {}"
-            error_msg = error_msg.format(broadcaster_name, e)
+            error_msg = "Failed to get information about broadcaster {} with error {}: '{}'"
+            error_msg = error_msg.format(broadcaster_name, type(e).__name__, e)
             logger.error(error_msg)
             return None
         if not res["data"]:
@@ -51,8 +51,8 @@ class TwitchWebhookHandler(Twitch):
             res = self.get_channel_information(broadcaster_id)
         except (TwitchAPIException, UnauthorizedException,
                 TwitchAuthorizationException, TwitchBackendException) as e:
-            error_msg = "Failed to get information about channel {} with error {}"
-            error_msg = error_msg.format(broadcaster_id, e)
+            error_msg = "Failed to get information about channel {} with error {}: '{}'"
+            error_msg = error_msg.format(broadcaster_id, type(e).__name__, e)
             logger.error(error_msg)
             return None, None
         game = res["data"][0]["game_name"]
@@ -67,8 +67,8 @@ class TwitchWebhookHandler(Twitch):
             res = self.get_users_follows(from_id=user_id, first=100)
         except (TwitchAPIException, UnauthorizedException, ValueError,
                 TwitchAuthorizationException, TwitchBackendException) as e:
-            error_msg = "Failed to get channels followed by twitch user {} with error {}"
-            error_msg = error_msg.format(user_id, e)
+            error_msg = "Failed to get channels followed by twitch user {} with error {}: '{}'"
+            error_msg = error_msg.format(user_id, type(e).__name__, e)
             logger.error(error_msg)
             return None
         followed_channels = res["data"]
@@ -81,8 +81,8 @@ class TwitchWebhookHandler(Twitch):
         try:
             uuid = self.hook.listen_stream_online(broadcaster_id, callback)
         except (EventSubSubscriptionConflict, EventSubSubscriptionTimeout, EventSubSubscriptionError) as e:
-            error_msg = "Subscription to broadcaster {} (id {}) failed with error {}"
-            error_msg = error_msg.format(broadcaster_name, broadcaster_id, e)
+            error_msg = "Subscription to broadcaster {} (id {}) failed with error {}: '{}'"
+            error_msg = error_msg.format(broadcaster_name, broadcaster_id, type(e).__name__, e)
             logger.error(error_msg)
             return None
         info_msg = "Subscribed to stream.online events for broadcaster {} (id {})"
