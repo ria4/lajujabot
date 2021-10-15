@@ -124,7 +124,7 @@ class LajujaBotUpdater(Updater):
         # since there's no method for this yet, at least empty the related entry
         chat_data = self.dispatcher.chat_data
         bot_data = self.dispatcher.bot_data
-        broadcaster_ids = chat_data[chat_id].keys()
+        broadcaster_ids = list(chat_data[chat_id].keys())
         for broadcaster_id in broadcaster_ids:
             chat_data[chat_id].pop(broadcaster_id)
             subscription = bot_data[broadcaster_id]
