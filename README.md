@@ -12,7 +12,9 @@ These subscriptions are persistent, meaning that the bot should automatically re
 - [A Twitch application id & secret](https://dev.twitch.tv/console/apps/create);
 - A secure host for the webhook listener.
 
-If you've already got control over a domain served with TLS 1.2+, you only need to proxy the webhook traffic to this application e.g. on port 15151. With nginx, this would mean adding to your server block something like:
+If you've already got control over a domain served with TLS 1.2+ (from standard port 443; this is [a Twitch requirement](https://dev.twitch.tv/docs/eventsub/handling-webhook-events/)), you only need to proxy the webhook traffic to this application e.g. on port 15151.
+
+With nginx, this would mean adding to your `listen 443 ssl` server block something like:
 
 ```nginx
 location /lajujabot-webhook/ {
