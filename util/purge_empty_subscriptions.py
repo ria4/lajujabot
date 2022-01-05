@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 
+# Run this from the main folder with: util/purge_empty_subscriptions.py
+# No need to activate the virtual environment
+
 import pickle
 
 
