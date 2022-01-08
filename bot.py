@@ -64,7 +64,7 @@ class LajujaBotUpdater(Updater):
         self.restore_bot_data()
 
     def register_handlers(self):
-        if "OopsItsBroken" in self.config and self.config["OopsItsBroken"] == "True":
+        if "MaintenanceMode" in self.config and self.config["MaintenanceMode"] == "True":
             self.dispatcher.add_handler(CommandHandler('start', self.start))
             self.dispatcher.add_handler(CommandHandler('help', self.help))
             self.dispatcher.add_handler(CommandHandler('about', self.about))

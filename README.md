@@ -1,4 +1,4 @@
-This Telegram bot sends notifications when selected Twitch streamers go live. It works in private chats and also in group chats.
+This Telegram bot sends notifications when selected Twitch streamers go live. It works both in private chats and in group chats.
 
 ### How it works
 
@@ -37,7 +37,7 @@ mkvirtualenv -p /usr/bin/python3 lajujabot
 (lajujabot)$ pip3 install -r requirements.txt
 ```
 
-Edit `config.json` with your own Telegram & Twitch keys.
+Then, edit `config.json` with your own parameters. You may hardcode them into the configuration file.
 
 ```json
 {
@@ -48,13 +48,13 @@ Edit `config.json` with your own Telegram & Twitch keys.
     "ListeningPort": "15151",
     "PersistenceFile": "/opt/lajujabot/subscriptions.pickle",
     "LogFile": "/opt/lajujabot/error.log",
-    "OopsItsBroken": "False"    # for use during maintenance
+    "MaintenanceMode": "False"
 }
 ```
 
-Alternatively, you may also declare environment variables (e.g. `export LAJUJABOT_TELEGRAMBOTTOKEN=...` into your `.bashrc`), and they will be transparently loaded.
+Alternatively, you may declare environment variables. They will be transparently loaded. For instance, you could add `export LAJUJABOT_CALLBACKURL='https://mydomain.tld/lajujabot-webhook/'` to your `.bashrc`.
 
-Path `/lajujabot-webhook/` and port 15151 are mainly suggestions. It's sensible to keep the persistence and log files in the bot directory, but you can get creative if you want.
+It's sensible to keep the persistence and log files in the bot directory, but you can get creative if you want.
 
 The bot should be able to start now:
 
