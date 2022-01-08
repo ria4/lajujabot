@@ -37,19 +37,22 @@ mkvirtualenv -p /usr/bin/python3 lajujabot
 (lajujabot)$ pip3 install -r requirements.txt
 ```
 
-Create a `config.json` with the mentioned values:
+Edit `config.json` with your own Telegram & Twitch keys.
 
 ```json
 {
-    "TelegramBotToken": "TELEGRAM_BOT_TOKEN",
-    "TwitchAppClientID": "TWITCH_APP_CLIENT_ID",
-    "TwitchAppClientSecret": "TWITCH_APP_CLIENT_SECRET",
-    "CallbackURL": "https://mydomain.tld/lajujabot-webhook/",
+    "TelegramBotToken": "$LAJUJABOT_TELEGRAMBOTTOKEN",
+    "TwitchAppClientID": "$LAJUJABOT_TWITCHAPPCLIENTID",
+    "TwitchAppClientSecret": "$LAJUJABOT_TWITCHAPPCLIENTSECRET",
+    "CallbackURL": "$LAJUJABOT_CALLBACKURL",
     "ListeningPort": "15151",
     "PersistenceFile": "/opt/lajujabot/subscriptions.pickle",
-    "LogFile": "/opt/lajujabot/error.log"
+    "LogFile": "/opt/lajujabot/error.log",
+    "OopsItsBroken": "False"    # for use during maintenance
 }
 ```
+
+Alternatively, you may also declare environment variables (e.g. `export LAJUJABOT_TELEGRAMBOTTOKEN=...` into your `.bashrc`), and they will be transparently loaded.
 
 Path `/lajujabot-webhook/` and port 15151 are mainly suggestions. It's sensible to keep the persistence and log files in the bot directory, but you can get creative if you want.
 

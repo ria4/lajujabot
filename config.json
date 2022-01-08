@@ -1,0 +1,10 @@
+{
+    "TelegramBotToken": "$LAJUJABOT_TELEGRAMBOTTOKEN",
+    "TwitchAppClientID": "$LAJUJABOT_TWITCHAPPCLIENTID",
+    "TwitchAppClientSecret": "$LAJUJABOT_TWITCHAPPCLIENTSECRET",
+    "CallbackURL": "$LAJUJABOT_CALLBACKURL",
+    "ListeningPort": 15151,
+    "PersistenceFile": "/opt/lajujabot/subscriptions.pickle",
+    "LogFile": "/opt/lajujabot/error.log",
+    "OopsItsBroken": "False"
+}

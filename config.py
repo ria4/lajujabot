@@ -15,8 +15,8 @@ def selectConfigFile():
             activeConfigFile = sys.argv[sys.argv.index('-c') + 1]
             return activeConfigFile
         else:
-            sys.exit("You specified a -c flag but you didn't tell me which" +
-                     "config file you want to use!\n" +
+            sys.exit("You specified a -c flag but you didn't tell me which "
+                     "config file you want to use!\n"
                      "Example syntax: python main.py -c customConfig.json\n")
     # Otherwise return the "default config file" as "active config file"
     else:
@@ -28,9 +28,18 @@ def loadConfigFile(activeConfigFile):
     with open(activeConfigFile, 'r') as configFile:
         try:
             config = json.load(configFile)
-            return config
         except:
             sys.exit("Cannot read config file correctly")
+        for k,v in config.items():
+            if type(v) is str and v.startswith("$"):
+                try:
+                    envvar = os.environ[v[1:]]
+                except:
+                    sys.exit("Could not import what appears to be "
+                             "an environment variable in the config file.\n"
+                             f"Check your {k} parameter.")
+                config[k] = envvar
+        return config
 
 
 ## Handles app configuration

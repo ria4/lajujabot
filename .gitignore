@@ -1,6 +1,5 @@
 __pycache__/
 .editorconfig
-config.json
 error.log
 subscriptions.pickle
 subscriptions.pickle.test
