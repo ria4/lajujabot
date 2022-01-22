@@ -68,6 +68,7 @@ Note that you can specify an alternative configuration file using `python3 main.
 
 - Factor method for removing a `broadcaster_id` from the `chat_data` in `bot.py`
 - Catch `telegram.error.BadRequest: Chat not found` to remove discontinued chats from `chat_data`
+- Leverage `drop_chat/user_data` method when `python-telegram-bot` v14 is out
 
 ### Credits
 
