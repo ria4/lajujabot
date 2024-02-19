@@ -4,7 +4,7 @@ This Telegram bot sends notifications when selected Twitch streamers go live. It
 
 We make use of [`python-telegram-bot`](https://github.com/python-telegram-bot/python-telegram-bot) & Twitch subscriptions via [`twitchAPI`](https://github.com/Teekeks/pyTwitchAPI). Basically the `twitchAPI` library sets up a webhook which will make Twitch report go-live events to a public domain under your control. When the alert reaches your side (usually 30-60s after the streamer actually goes live), it triggers the bot into sending a message to every chat which subscribed to the related Twitch channel.
 
-These subscriptions are persistent, meaning that the bot should automatically restore them after a crash.
+These subscriptions are persistent, meaning that the bot automatically restores them after a crash.
 
 ### What it needs
 
@@ -56,7 +56,7 @@ Alternatively, you may declare environment variables. They will be transparently
 
 It's sensible to keep the persistence and log files in the bot directory, but you can get creative if you want.
 
-The bot should be able to start now:
+The bot should now be able to start:
 
 ```bash
 python3 main.py
@@ -66,10 +66,13 @@ Note that you can specify an alternative configuration file using `python3 main.
 
 ### TODO
 
-- Leverage `drop_chat/user_data` method when `python-telegram-bot` v14 is out
+- Make the bot compatible with the newest, `asyncio`-powered dependencies
+- Replace `virtualenvwrapper` with `pipenv`
+- Leverage `drop_chat_data` & `drop_user_data` methods in `bot.py`
+- Handle post-reboot crashes (as reported in `error.log`)
 
 ### Credits
 
-This bot is a rework of [`misterino`](https://github.com/avivace/misterino), by Denni Bevilacqua and Antonio Vivace.
+This bot started as a rework of [`misterino`](https://github.com/avivace/misterino), by Denni Bevilacqua and Antonio Vivace.
 
 It is mostly indebted to the [`twitchAPI`](https://github.com/Teekeks/pyTwitchAPI) implementation by Lena 'Teekeks' During.
