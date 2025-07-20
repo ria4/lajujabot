@@ -1,4 +1,6 @@
 import logging
+import requests.exceptions
+import time
 
 from twitchAPI import (Twitch, EventSub,
                        TwitchAPIException, UnauthorizedException,
@@ -78,11 +80,35 @@ class TwitchWebhookHandler(Twitch):
         return followed_channels
 
     def listen_stream_online_clean(self, broadcaster_id, broadcaster_name, callback):
-        try:
-            uuid = self.hook.listen_stream_online(broadcaster_id, callback)
-        except (EventSubSubscriptionConflict, EventSubSubscriptionTimeout, EventSubSubscriptionError) as e:
-            error_msg = "Subscription to broadcaster {} (id {}) failed with error {}: '{}'"
-            error_msg = error_msg.format(broadcaster_name, broadcaster_id, type(e).__name__, e)
+        hook_success = False
+        attempt = 0
+        max_attempts = 5
+        while True:
+            attempt += 1
+            try:
+                uuid = self.hook.listen_stream_online(broadcaster_id, callback)
+            except (
+                EventSubSubscriptionConflict,
+                EventSubSubscriptionTimeout,
+                EventSubSubscriptionError,
+                requests.exceptions.ConnectionError,
+            ) as e:
+                error_msg = "Subscription to broadcaster {} (id {}) failed with error {}: '{}'"
+                error_msg = error_msg.format(broadcaster_name, broadcaster_id, type(e).__name__, e)
+                logger.error(error_msg)
+                if attempt == max_attempts:
+                    break
+                # retry after 5 seconds on first error, then after 10 seconds, etc.
+                retry_after = 5 * attempt
+                logger.error(f"Will retry subscribing in {retry_after} seconds.")
+                time.sleep(retry_after)
+                continue
+            else:
+                hook_success = True
+                break
+        if not hook_success:
+            error_msg = "Aborting subscription to broadcaster {} (id {}) after it failed for {} times in a row."
+            error_msg = error_msg.format(broadcaster_name, broadcaster_id, max_attempts)
             logger.error(error_msg)
             return None
         info_msg = "Subscribed to stream.online events for broadcaster {} (id {})"
