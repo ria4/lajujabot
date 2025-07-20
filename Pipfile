@@ -1,0 +1,13 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+python-telegram-bot = "==13.7"
+twitchapi = "==2.4.2"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"

@@ -23,18 +23,13 @@ location /lajujabot-webhook/ {
 
 ### Start the bot
 
-```bash
-# System dependencies
-sudo apt install python3 python3-pip
-pip3 install virtualenvwrapper
+First, import the project and install the Python dependencies using pipenv.
 
-# Get things ready
+```bash
+sudo apt install python3 python3-pip pipenv
 git clone https://github.com/ria4/lajujabot
 cd lajujabot
-mkvirtualenv -p /usr/bin/python3 lajujabot
-
-# Python dependencies
-(lajujabot)$ pip3 install -r requirements.txt
+pipenv sync
 ```
 
 Then, edit `config.json` with your own parameters. You may hardcode them into the configuration file.
@@ -59,7 +54,8 @@ It's sensible to keep the persistence and log files in the bot directory, but yo
 The bot should now be able to start:
 
 ```bash
-python3 main.py
+pipenv shell
+(lajujabot) python main.py
 ```
 
 Note that you can specify an alternative configuration file using `python3 main.py -c config2.json`.
@@ -67,7 +63,6 @@ Note that you can specify an alternative configuration file using `python3 main.
 ### TODO
 
 - Make the bot compatible with the newest, `asyncio`-powered dependencies
-- Replace `virtualenvwrapper` with `pipenv`
 - Leverage `drop_chat_data` & `drop_user_data` methods in `bot.py`
 - Handle ChatMigrated error
 - Handle post-reboot crashes (as reported in `error.log`)
