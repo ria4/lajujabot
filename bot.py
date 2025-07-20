@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from inspect import cleandoc
 from queue import Queue
 
-from telegram.error import Unauthorized, BadRequest
+from telegram.error import BadRequest, ChatMigrated, Unauthorized
 from telegram.ext import (Updater, Dispatcher,
                           ExtBot, JobQueue, PicklePersistence,
                           CommandHandler, MessageHandler, Filters)
@@ -211,17 +211,13 @@ class LajujaBotUpdater(Updater):
                     try:
                         self.bot.send_message(chat_id=chat_id, text=text)
                         logger.info(f"Sent message to chat {chat_id}:\n{text}")
-                    except Unauthorized as e:
-                        logger.info(f"Sending a message to chat {chat_id} raised a telegram.error.Unauthorized: {e}")
-                        logger.info(f"Removing chat {chat_id} from bot users...")
-                        self.delete_chat_data(chat_id)
-                    except BadRequest as e:
-                        logger.info(f"Sending a message to chat {chat_id} raised a telegram.error.BadRequest: {e}")
+                    except (BadRequest, ChatMigrated, Unauthorized) as e:
+                        logger.info(f"Sending a message to chat {chat_id} raised error {type(e).__name__}: {e}")
                         logger.info(f"Removing chat {chat_id} from bot users...")
                         self.delete_chat_data(chat_id)
                 break
 
-    
+
     def start(self, update, context):
         """Telegram bot command /start to get a greeting message."""
 

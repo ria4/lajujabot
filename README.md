@@ -64,7 +64,6 @@ Note that you can specify an alternative configuration file using `python3 main.
 
 - Make the bot compatible with the newest, `asyncio`-powered dependencies
 - Leverage `drop_chat_data` & `drop_user_data` methods in `bot.py`
-- Handle ChatMigrated error
 - Handle post-reboot crashes (as reported in `error.log`)
 
 ### Credits
