@@ -16,8 +16,39 @@ class TwitchWebhookHandler(Twitch):
     def __init__(self, config):
         self.config = config
         self.hook = None
-        super().__init__(config["TwitchAppClientID"], config["TwitchAppClientSecret"])
-        super().authenticate_app([])
+
+        auth_success = False
+        exc = None
+        attempt = 0
+        max_attempts = 5
+        while True:
+            attempt += 1
+            try:
+                super().__init__(config["TwitchAppClientID"], config["TwitchAppClientSecret"])
+            except requests.exceptions.ConnectionError as e:
+                exc = e
+                error_msg = "Authentication for app {} failed with error {}: '{}'"
+                error_msg = error_msg.format(config["TwitchAppClientID"], type(e).__name__, e)
+                logger.error(error_msg)
+                if attempt == max_attempts:
+                    break
+                # retry after 5 seconds on first error, then after 10 seconds, etc.
+                retry_after = 5 * attempt
+                logger.error(f"Will retry authenticating in {retry_after} seconds.")
+                time.sleep(retry_after)
+                continue
+            else:
+                auth_success = True
+                break
+        if not auth_success:
+            error_msg = "Aborting authentication process for app {} after it failed for {} times in a row."
+            error_msg = error_msg.format(config["TwitchAppClientID"], max_attempts)
+            logger.error(error_msg)
+            raise exc
+        info_msg = "Successful authentication for app {}"
+        info_msg = info_msg.format(config["TwitchAppClientID"])
+        logger.info(info_msg)
+
         self.setup_webhook(config["CallbackURL"], config["TwitchAppClientID"])
         logger.info("A Twitch webhook has been set up for app {}, with callback to {}".\
                         format(config["TwitchAppClientID"], config["CallbackURL"]))
