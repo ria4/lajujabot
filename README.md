@@ -1,4 +1,4 @@
-This Telegram bot sends notifications when selected Twitch streamers go live. It works both in private chats and in group chats.
+This Telegram bot sends notifications when selected Twitch streamers go live. It works both in private chats and in group chats. Start using the bot by visiting [https://telegram.me/LajujaBot](https://telegram.me/LajujaBot) or by adding @LajujaBot to your contacts.
 
 ### How it works
 
